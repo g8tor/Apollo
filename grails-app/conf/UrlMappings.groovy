@@ -16,7 +16,7 @@ class UrlMappings {
             }
         }
 
-
+     //  "/annotator/export/"(controller: "annotator", action:"export")
         "/"(redirect: '/annotator/index')
         "500"(view: '/error')
         "/menu"(view: '/menu')
