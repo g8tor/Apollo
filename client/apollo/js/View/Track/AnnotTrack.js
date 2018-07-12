@@ -4300,13 +4300,6 @@ define([
                     innerHTML: "Delete",
                     'class': "annotation_info_editor_button"
                 }, attributeButtons);
-		var attributess = "Use the Replaced Models field to specify the gene models your annotation(s) will supercede in any official gene set generated from these annotations.";
-                new Tooltip({
-			connectId: attributesDiv,
-			    label: attributess,
-			    position: ["above"],
-			    showDelay: 600
-			    });
 
                 var pubmedIdsDiv = dojo.create("div", {'class': "annotation_info_editor_section"}, content);
                 var pubmedIdsLabel = dojo.create("div", {
@@ -4716,7 +4709,7 @@ define([
                         });
                         for (var i = 0; i < feature.non_reserved_properties.length; ++i) {
                             var attribute = feature.non_reserved_properties[i];
-                            attributes.newItem({tag: "replace", value: attribute.value});
+                            attributes.newItem({tag: attribute.tag, value: attribute.value});
                         }
 
 
@@ -4731,9 +4724,9 @@ define([
                                     options: cannedKeys,
                                     formatter: function (tag) {
                                         if (!tag) {
-                                            return "replace";
+                                            return "Enter new tag";
                                         }
-                                        return "replace";
+                                        return tag;
                                     },
                                     editable: hasWritePermission
                                 },
@@ -4781,7 +4774,7 @@ define([
                         });
 
                         dojo.connect(attributeTable, "onCancelEdit", function (inRowIndex) {
-                            attributeTable.store.setValue(attributeTable.getItem(inRowIndex), "tag", "replace");
+                            attributeTable.store.setValue(attributeTable.getItem(inRowIndex), "tag", oldTag);
                             attributeTable.store.setValue(attributeTable.getItem(inRowIndex), "value", oldValue);
                             dirty = false;
                         });
@@ -4792,18 +4785,18 @@ define([
                             if (!newTag || !newValue) {
                             }
                             else if (!oldTag || !oldValue) {
-                                addAttribute("replace", newValue);
+                                addAttribute(newTag, newValue);
                             }
                             else {
                                 if (newTag != oldTag || newValue != oldValue) {
-                                    updateAttribute(oldTag, oldValue, "replace", newValue);
+                                    updateAttribute(oldTag, oldValue, newTag, newValue);
                                 }
                             }
                             dirty = false;
                         });
 
                         dojo.connect(addAttributeButton, "onclick", function () {
-                            attributeTable.store.newItem({tag: "replace", value: ""});
+                            attributeTable.store.newItem({tag: "", value: ""});
                             attributeTable.scrollToRow(attributeTable.rowCount);
                         });
 
