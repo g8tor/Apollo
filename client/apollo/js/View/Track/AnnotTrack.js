@@ -419,7 +419,7 @@ define([
                     var user = JSON.parse(apolloMainPanel.getCurrentUser());
                     client.subscribe("/topic/AnnotationNotification/" + organism.id + "/" + sequence.id, dojo.hitch(track, 'annotationNotification'));
                     client.subscribe("/topic/AnnotationNotification/user/" + user.email, dojo.hitch(track, 'annotationNotification'));
-                    localStorage.setItem('organism-id', organism.id);
+		    localStorage.setItem('organism-id', organism.id);
                 });
                 console.log('connection established');
             },
@@ -2664,7 +2664,6 @@ define([
                 var phenotypeOntologyIdsDiv = dojo.create("div", {'class': "annotation_info_editor_section"}, content);
                 var phenotypeOntologyIdsLabel = dojo.create("div", {
                     'class': "annotation_info_editor_section_header",
-<<<<<<< HEAD
                     innerHTML: "Phenotype Ontology"
                 }, phenotypeOntologyIdsDiv);
                 var phenotypeOntologyIdsTable = dojo.create("div", {
