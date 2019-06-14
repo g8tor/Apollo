@@ -99,10 +99,10 @@ jbrowse {
    git {
 //       url= "https://github.com/NAL-i5K/jbrowse"
        url= "https://github.com/GMOD/jbrowse"
+       tag = "1.16.3-release"
 //        branch = "master"
-//	  tag = "1.0.0"
+//	  tag = "1.15.4-release"
 //	  tag = "e9a005cf86a40ad4b2a4aaebcbf914a866ff7f3b"
-	  tag = "maint/1.12.5-apollo"
        alwaysPull = true
        alwaysRecheck = true
 
@@ -113,12 +113,12 @@ jbrowse {
        WebApollo{
            included = true
        }
-    //    NeatHTMLFeatures{
-    //        included = true
-    //    }
-    //    NeatCanvasFeatures{
-    //        included = true
-    //    }
+        NeatHTMLFeatures{
+            included = false
+        }
+        NeatCanvasFeatures{
+            included = false
+        }
        RegexSequenceSearch{
            included = true
        }
@@ -144,11 +144,12 @@ jbrowse {
        }
        ColorByType {
            git = "https://github.com/NAL-i5K/ColorByType"
-           branch = "master"
-//           branch = "color_second_level"
+//           branch = "master"
+           branch = "issue10_cds"
            alwaysPull = true
            alwaysRecheck = true
        }
+
 //        Header {
 //           git = 'https://github.com/NAL-i5K/workspace_header_footer'
 //               branch = 'master'

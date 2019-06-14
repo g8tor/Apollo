@@ -1,3 +1,7 @@
+const $ = require('jquery');
+const jui = require('jqueryui');
+const {draggable,droppable,resizable,autocomplete,dialog} = $.ui;
+
 define( [
             'dojo/_base/declare',
             'dojo/_base/array',
@@ -9,8 +13,6 @@ define( [
             'dijit/CheckedMenuItem',
             'dijit/MenuSeparator',
             'dijit/Dialog',
-            'jquery',
-            'jqueryui/draggable',
             'JBrowse/Util',
             'JBrowse/Model/SimpleFeature',
             'WebApollo/SequenceOntologyUtils'
@@ -28,8 +30,6 @@ define( [
             dijitCheckedMenuItem,
             dijitMenuSeparator,
             dijitDialog,
-            $,
-            draggable,
             Util,
             SimpleFeature,
             SeqOnto ) {
@@ -440,7 +440,7 @@ var draggableTrack = declare( HTMLVariantTrack,
                         axis: 'y'
                 });
 
-                $featdiv.draggable().data("draggable")._mouseDown(event);
+                $featdiv.draggable().data("ui-draggable")._mouseDown(event);
             }
         }
     },

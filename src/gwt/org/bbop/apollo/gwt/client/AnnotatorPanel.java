@@ -31,7 +31,6 @@ import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.cellview.client.*;
 import com.google.gwt.user.cellview.client.Column;
-import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.*;
 import com.google.gwt.view.client.*;
 import org.bbop.apollo.gwt.client.dto.AnnotationInfo;
@@ -43,6 +42,7 @@ import org.bbop.apollo.gwt.client.event.AnnotationInfoChangeEventHandler;
 import org.bbop.apollo.gwt.client.event.UserChangeEvent;
 import org.bbop.apollo.gwt.client.event.UserChangeEventHandler;
 import org.bbop.apollo.gwt.client.resources.TableResources;
+import org.bbop.apollo.gwt.client.rest.AnnotationRestService;
 import org.bbop.apollo.gwt.client.rest.UserRestService;
 import org.bbop.apollo.gwt.shared.FeatureStringEnum;
 import org.bbop.apollo.gwt.shared.PermissionEnum;
@@ -52,6 +52,7 @@ import org.gwtbootstrap3.client.ui.Label;
 import org.gwtbootstrap3.client.ui.ListBox;
 import org.gwtbootstrap3.client.ui.TextBox;
 import org.gwtbootstrap3.extras.bootbox.client.Bootbox;
+import org.gwtbootstrap3.extras.bootbox.client.callback.ConfirmCallback;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -124,6 +125,8 @@ public class AnnotatorPanel extends Composite {
     Container northPanelContainer;
     @UiField
     static Button gotoAnnotation;
+    @UiField
+    static Button deleteAnnotation;
 
     private static AnnotationInfo selectedAnnotationInfo;
     private MultiWordSuggestOracle sequenceOracle = new ReferenceSequenceOracle();
@@ -259,7 +262,7 @@ public class AnnotatorPanel extends Composite {
                                             }
                                             // if a child, we need to get the index I think?
                                             final String thisUniqueName = selectedChildUniqueName;
-                                            for (AnnotationInfo annotationInfoChild : annotationInfo.getAnnotationInfoSet()) {
+                                            for (AnnotationInfo annotationInfoChild : annotationInfo.getChildAnnotations()) {
                                                 GWT.log("next-level: " + annotationInfoChild.getType());
                                                 if (annotationInfoChild.getUniqueName().equals(selectedAnnotationInfo.getUniqueName())) {
 //                                                    selectedAnnotationInfo = annotationInfo;
@@ -428,6 +431,7 @@ public class AnnotatorPanel extends Composite {
         typeList.addItem("Gene");
         typeList.addItem("Pseudogene");
         typeList.addItem("Transposable Element", "transposable_element");
+        typeList.addItem("Terminator", "terminator");
         typeList.addItem("Repeat Region", "repeat_region");
         typeList.addItem("Variant", "sequence_alteration");
     }
@@ -481,6 +485,7 @@ public class AnnotatorPanel extends Composite {
                 tabPanel.getTabWidget(3).getParent().setVisible(false);
                 tabPanel.getTabWidget(4).getParent().setVisible(false);
                 break;
+            case "terminator":
             case "transposable_element":
             case "repeat_region":
                 repeatRegionDetailPanel.updateData(annotationInfo);
@@ -490,6 +495,8 @@ public class AnnotatorPanel extends Composite {
                 tabPanel.getTabWidget(3).getParent().setVisible(false);
                 tabPanel.getTabWidget(4).getParent().setVisible(false);
                 break;
+            case "deletion":
+            case "insertion":
             case "SNV":
             case "SNP":
             case "MNV":
@@ -606,6 +613,8 @@ public class AnnotatorPanel extends Composite {
 
                 String type = annotationInfo.getType();
                 switch (type) {
+                    case "terminator":
+                        return "terminator";
                     case "repeat_region":
                         return "repeat rgn";
                     case "transposable_element":
@@ -638,6 +647,7 @@ public class AnnotatorPanel extends Composite {
         dateColumn.setSortable(true);
         dateColumn.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
         dateColumn.setCellStyleNames("dataGridLastColumn");
+        dateColumn.setDefaultSortAscending(false);
 
         dataGrid.addDomHandler(new DoubleClickHandler() {
             @Override
@@ -657,9 +667,11 @@ public class AnnotatorPanel extends Composite {
                 if (selectedAnnotationInfo != null) {
                     exonDetailPanel.updateData(selectedAnnotationInfo);
                     gotoAnnotation.setEnabled(true);
+                    deleteAnnotation.setEnabled(true);
                 } else {
                     exonDetailPanel.updateData();
                     gotoAnnotation.setEnabled(false);
+                    deleteAnnotation.setEnabled(false);
                 }
             }
         });
@@ -722,9 +734,65 @@ public class AnnotatorPanel extends Composite {
         MainPanel.updateGenomicViewerForLocation(selectedAnnotationInfo.getSequence(), min, max, false, false);
     }
 
+    @UiHandler("deleteAnnotation")
+    void deleteAnnotation(ClickEvent clickEvent) {
+        final Set<AnnotationInfo> deletableChildren = getDeletableChildren(selectedAnnotationInfo);
+        String confirmString = "";
+        if (deletableChildren.size() > 0) {
+            confirmString = "Delete the " + deletableChildren.size() + " annotation" + (deletableChildren.size() > 1 ? "s" : "") + " belonging to the " + selectedAnnotationInfo.getType() + " " + selectedAnnotationInfo.getName() + "?";
+        } else {
+            confirmString = "Delete the " + selectedAnnotationInfo.getType() + " " + selectedAnnotationInfo.getName() + "?";
+        }
+
+
+        final RequestCallback requestCallback = new RequestCallback() {
+            @Override
+            public void onResponseReceived(Request request, Response response) {
+                if (response.getStatusCode() == 200) {
+                    // parse to make sure we return the complete amount
+                    try {
+                        JSONValue returnValue = JSONParser.parseStrict(response.getText());
+                    } catch (Exception e) {
+                        Bootbox.alert(e.getMessage());
+                    }
+                } else {
+                    Bootbox.alert("Problem with deletion: " + response.getText());
+                }
+            }
+
+            @Override
+            public void onError(Request request, Throwable exception) {
+                Bootbox.alert("Problem with deletion: " + exception.getMessage());
+            }
+        };
+
+        Bootbox.confirm(confirmString, new ConfirmCallback() {
+            @Override
+            public void callback(boolean result) {
+                if (result) {
+                    if (deletableChildren.size() == 0) {
+                        Set<AnnotationInfo> annotationInfoSet = new HashSet<>();
+                        annotationInfoSet.add(selectedAnnotationInfo);
+                        AnnotationRestService.deleteAnnotations(requestCallback, annotationInfoSet);
+                    } else {
+                        JSONObject jsonObject = AnnotationRestService.deleteAnnotations(requestCallback, deletableChildren);
+                    }
+                }
+            }
+        });
+    }
+
+
+    private Set<AnnotationInfo> getDeletableChildren(AnnotationInfo selectedAnnotationInfo) {
+        String type = selectedAnnotationInfo.getType();
+        if (type.equalsIgnoreCase(FeatureStringEnum.GENE.getValue()) || type.equalsIgnoreCase(FeatureStringEnum.PSEUDOGENE.getValue())) {
+            return selectedAnnotationInfo.getChildAnnotations();
+        }
+        return new HashSet<>();
+    }
 
     private static AnnotationInfo getChildAnnotation(AnnotationInfo annotationInfo, String uniqueName) {
-        for (AnnotationInfo childAnnotation : annotationInfo.getAnnotationInfoSet()) {
+        for (AnnotationInfo childAnnotation : annotationInfo.getChildAnnotations()) {
             if (childAnnotation.getUniqueName().equalsIgnoreCase(uniqueName)) {
                 return childAnnotation;
             }
@@ -740,6 +808,7 @@ public class AnnotatorPanel extends Composite {
         exonDetailPanel.updateData(selectedAnnotationInfo);
         updateAnnotationInfo(selectedAnnotationInfo);
         gotoAnnotation.setEnabled(true);
+        deleteAnnotation.setEnabled(true);
         selectedChildUniqueName = selectedAnnotationInfo.getUniqueName();
     }
 
@@ -751,6 +820,7 @@ public class AnnotatorPanel extends Composite {
         selectedAnnotationInfo = getChildAnnotation(annotationInfo, uniqueName);
         exonDetailPanel.updateData(selectedAnnotationInfo);
         gotoAnnotation.setEnabled(true);
+        deleteAnnotation.setEnabled(true);
         selectedChildUniqueName = selectedAnnotationInfo.getUniqueName();
 
         // for some reason doesn't like call gotoAnnotation
@@ -764,12 +834,13 @@ public class AnnotatorPanel extends Composite {
     public void displayFeature(int featureIndex) {
         AnnotationInfo annotationInfo = dataGrid.getVisibleItem(Math.abs(dataGrid.getVisibleRange().getStart() - featureIndex));
         String type = annotationInfo.getType();
-        if (type.equals("transposable_element") || type.equals("repeat_region")) {
+        if (type.equals("transposable_element") || type.equals("repeat_region") || type.equals("terminator")) {
             // do nothing
         } else {
             exonDetailPanel.updateData(annotationInfo);
         }
         gotoAnnotation.setEnabled(true);
+        deleteAnnotation.setEnabled(true);
         Integer min = selectedAnnotationInfo.getMin() - 50;
         Integer max = selectedAnnotationInfo.getMax() + 50;
         min = min < 0 ? 0 : min;
@@ -797,7 +868,7 @@ public class AnnotatorPanel extends Composite {
 
             if (showingTranscripts.contains(rowValue.getUniqueName())) {
                 // add some random rows
-                Set<AnnotationInfo> annotationInfoSet = rowValue.getAnnotationInfoSet();
+                Set<AnnotationInfo> annotationInfoSet = rowValue.getChildAnnotations();
                 if (annotationInfoSet.size() > 0) {
                     for (AnnotationInfo annotationInfo : annotationInfoSet) {
                         buildAnnotationRow(annotationInfo, absRowIndex, true);

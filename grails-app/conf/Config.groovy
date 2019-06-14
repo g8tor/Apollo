@@ -215,9 +215,11 @@ apollo {
     user_pure_memory_store = true
     is_partial_translation_allowed = false // unused so far
     export_subfeature_attrs = false
+    store_orig_id = true // sets the orig_id to the original evidence id when first created
 
     // used for uploading
-    common_data_directory = "/opt/apollo"
+//    common_data_directory = "/opt/apollo"
+    common_data_directory = "apollo_data"
 
     // settings for Chado export
     // set chado_export_fasta_for_sequence if you want the reference sequence FASTA to be exported into the database
@@ -342,7 +344,7 @@ apollo {
             , ['label': "Proxies", 'link': "/proxy/",'globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
             , ['label': "Report::Organisms", 'link': "/organism/report/", 'type': "report"]
             , ['label': "Report::Sequences", 'link': "/sequence/report/", 'type': "report"]
-            , ['label': "Report::Annotator", 'link': "/annotator/report/", 'globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
+            , ['label': "Report::Annotator", 'link': "/annotator/report/", 'type':'report','globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
             , ['label': "Report::Instructor", 'link': "/annotator/instructorReport/", 'type': "report"]
             , ['label': "Report::Changes", 'link': "/featureEvent/report/", 'type': "report"]
             , ['label': "System Info", 'link': "/home/systemInfo/", 'type': "report",'globalRank':org.bbop.apollo.gwt.shared.GlobalPermissionEnum.ADMIN]
@@ -399,11 +401,11 @@ auditLog {
 jbrowse {
     git {
         url = "https://github.com/gmod/jbrowse"
-//        branch = "master"
-        tag = "maint/1.12.5-apollo"
-//        tag = "27ec453"
-        alwaysPull = false
-        alwaysRecheck = false
+//        branch = "1.16.3-release"
+		branch = "dev"
+//        tag = "15dfd2309f2d508d8bed782d0f68b38dd9927bb4"
+        alwaysPull = true
+        alwaysRecheck = true
     }
 //    url {
 //        // always use dev for apollo
@@ -412,19 +414,17 @@ jbrowse {
 //        fileName = "JBrowse-1.12.0-dev"
 //    }
 //
-//	// Warning: We are still testing the performance of the NeatFeatures plugins in combination with Apollo.
-//	// We advise caution if enabling these plugins with Apollo until this process is finalized.
     plugins {
         WebApollo {
             included = true
         }
-//        NeatHTMLFeatures{
-//            included = true
-//            linearGradient = 0
-//        }
-//        NeatCanvasFeatures{
-//            included = true
-//        }
+        NeatHTMLFeatures{
+            included = true
+            linearGradient = 0
+        }
+        NeatCanvasFeatures{
+            included = true
+        }
         RegexSequenceSearch {
             included = true
         }

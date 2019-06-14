@@ -24,13 +24,14 @@ import org.springframework.http.HttpStatus
 /**
  * This is server-side code supporting the high-level functionality of the GWT AnnotatorPanel class.
  */
-@RestApi(name = "Application Services", description = "Methods for running the annotation engine")
+@RestApi(name = "Annotator Engine Services", description = "Methods for running the annotation engine")
 class AnnotatorController {
 
     def featureService
     def requestHandlingService
     def permissionService
     def annotatorService
+    def trackService
     def preferenceService
     def reportService
     def featureRelationshipService
@@ -93,8 +94,8 @@ class AnnotatorController {
             preferenceService.setCurrentOrganism(permissionService.currentUser, organism, clientToken)
             String location = params.loc
             // assume that the lookup is a symbol lookup value and not a location
-            if (location && location.contains(":") && location.contains("\\.\\.")) {
-                String[] splitString = location.split(":")
+            if (location && location.contains(':') && location.contains('..')) {
+                String[] splitString = location.split(':')
                 log.debug "splitString : ${splitString}"
                 String sequenceString = splitString[0]
                 Sequence sequence = Sequence.findByOrganismAndName(organism, sequenceString)
@@ -314,6 +315,8 @@ class AnnotatorController {
                     case "Pseudogene": viewableTypes.add(Pseudogene.class.canonicalName)
                         break
                     case "repeat_region": viewableTypes.add(RepeatRegion.class.canonicalName)
+                        break
+                    case "terminator": viewableTypes.add(Terminator.class.canonicalName)
                         break
                     case "transposable_element": viewableTypes.add(TransposableElement.class.canonicalName)
                         break
@@ -579,6 +582,23 @@ class AnnotatorController {
         render annotatorService.getAppState(params.get(FeatureStringEnum.CLIENT_TOKEN.value).toString()) as JSON
     }
 
+    @Transactional
+    String updateCommonPath(String directory) {
+        log.debug "Updating the common path for ${directory}"
+        JSONObject returnObject = new JSONObject()
+
+        try {
+            String returnString = trackService.updateCommonDataDirectory(directory) as String
+            log.info "Returning common data directory ${returnString}"
+            if(returnString){
+                returnObject.error = returnString
+            }
+        } catch (e) {
+            returnObject.error = e.getMessage()
+        }
+        render returnObject as JSON
+    }
+
 /**
  */
     @Transactional
@@ -628,7 +648,7 @@ class AnnotatorController {
         List<User> annotators = User.list(params)
 
         annotators.each {
-            annotatorSummaryList.add(reportService.generateAnnotatorSummary(it, true))
+            annotatorSummaryList.add(reportService.generateAnnotatorSummary(it))
         }
 
         render view: "report", model: [annotatorInstanceList: annotatorSummaryList, annotatorInstanceCount: User.count]
@@ -653,7 +673,7 @@ class AnnotatorController {
             }
         }
         if (!filteredGroups) {
-            def error = [error: "no authorized groups"]
+            def error = [error: "No authorized groups"]
             render error as JSON
             return
         }
@@ -667,7 +687,7 @@ class AnnotatorController {
 
         def annotatorInstanceCount = userGroup.users.size()
         annotators.each {
-            annotatorSummaryList.add(reportService.generateAnnotatorSummary(it, true))
+            annotatorSummaryList.add(reportService.generateAnnotatorSummary(it))
         }
 
         render view: "instructorReport", model: [userGroups: filteredGroups, userGroup: userGroup, permissionService: permissionService, annotatorInstanceList: annotatorSummaryList, annotatorInstanceCount: annotatorInstanceCount]
@@ -680,7 +700,7 @@ class AnnotatorController {
             redirect(uri: "/auth/login")
             return
         }
-        render view: "detail", model: [annotatorInstance: reportService.generateAnnotatorSummary(user, true)]
+        render view: "detail", model: [annotatorInstance: reportService.generateAnnotatorSummary(user)]
     }
 
     def ping() {
@@ -710,8 +730,8 @@ class AnnotatorController {
         groups.each { group ->
             def userGroup = UserGroup.findById(group)
             def annotators = userGroup.users
-            annotators.each { annotator ->
-                def annotatorSummary = reportService.generateAnnotatorSummary(annotator, true)
+            annotators.each { User annotator ->
+                AnnotatorSummary annotatorSummary = reportService.generateAnnotatorSummary(annotator)
                 annotatorSummary.userOrganismPermissionList.each {
                     Organism organism = it.userOrganismPermission.organism
 

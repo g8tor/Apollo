@@ -1,14 +1,14 @@
+const $ = require('jquery');
+const jui = require('jqueryui');
+// const bbopwidget = require('bbop-widget-set');
+const {draggable,droppable,resizable,autocomplete,dialog} = $.ui;
+
+
 define([
         'dojo/_base/declare',
         'dojo/_base/array',
         'dojo/on',
         'dojo/request',
-        'jquery',
-        'jqueryui/draggable',
-        'jqueryui/droppable',
-        'jqueryui/resizable',
-        'jqueryui/autocomplete',
-        'jqueryui/dialog',
         'dijit/registry',
         'dijit/Menu',
         'dijit/MenuItem',
@@ -25,7 +25,7 @@ define([
         'dojox/grid/DataGrid',
         'dojox/grid/cells/dijit',
         'dojo/data/ItemFileWriteStore',
-        'WebApollo/View/Track/DraggableHTMLFeatures',
+        'WebApollo/View/Track/DraggableNeatHTMLFeatures',
         'WebApollo/FeatureSelectionManager',
         'WebApollo/JSONUtils',
         'WebApollo/BioFeatureUtils',
@@ -49,12 +49,8 @@ define([
               array,
               on,
               request,
-              $,
-              draggable,
-              droppable,
-              resizable,
-              autocomplete,
-              dialog,
+
+
               registry,
               dijitMenu,
               dijitMenuItem,
@@ -334,7 +330,11 @@ define([
                         filteredTrack.type = trackConfig.type;
                         filteredTrack.category = trackConfig.category;
                         filteredTrack.urlTemplate = trackConfig.urlTemplate;
+                        filteredTrack.storeClass = trackConfig.storeClass;
                         filteredTrack.visible = visible;
+                        if(trackConfig.apollo){
+                            filteredTrack.apollo = trackConfig.apollo;
+                        }
                         filteredTrackList.push(filteredTrack);
                     }
 
@@ -409,6 +409,7 @@ define([
                     var user = JSON.parse(apolloMainPanel.getCurrentUser());
                     client.subscribe("/topic/AnnotationNotification/" + organism.id + "/" + sequence.id, dojo.hitch(track, 'annotationNotification'));
                     client.subscribe("/topic/AnnotationNotification/user/" + user.email, dojo.hitch(track, 'annotationNotification'));
+		    localStorage.setItem('organism-id', organism.id);
                 });
                 console.log('connection established');
             },
@@ -695,7 +696,7 @@ define([
                      * setting up annotation resizing via pulling of left/right edges but if
                      * subfeature is not selectable, do not bind mouse down
                      */
-                    if (subdiv && subdiv != null && (!this.selectionManager.unselectableTypes[subfeature.get('type')])) {
+                    if (subdiv && (!this.selectionManager.unselectableTypes[subfeature.get('type')])) {
                         $(subdiv).bind("mousedown", this.annotMouseDown);
                     }
                 }
@@ -856,7 +857,7 @@ define([
                 event = event || window.event;
                 var elem = (event.currentTarget || event.srcElement);
                 var featdiv = this.getLowestFeatureDiv(elem);
-                if (featdiv && (featdiv != null)) {
+                if (featdiv) {
                     if (this.verbose_click) {
                         console.log(featdiv);
                     }
@@ -896,13 +897,13 @@ define([
                         subfeats.push(featToAdd);
                     }
                     else {  // top-level feature
-                        var source_track = feature_record.track;
+                        var feat = JSONUtils.handleCigarSubFeatures(feat, annot.get('type'));
                         var subs = feat.get('subfeatures');
                         if (subs && subs.length > 0) {  // top-level
                             // feature with
                             // subfeatures
-                            for (var i = 0; i < subs.length; ++i) {
-                                var subfeat = subs[i];
+                            for (var j = 0; j < subs.length; ++j) {
+                                var subfeat = subs[j];
                                 var featStrand = subfeat.get('strand');
                                 var featToAdd = subfeat;
                                 if (featStrand != annotStrand) {
@@ -911,7 +912,6 @@ define([
                                 }
                                 subfeats.push(featToAdd);
                             }
-                            // $.merge(subfeats, subs);
                         }
                         else {  // top-level feature without subfeatures
                             // make exon feature
@@ -1039,19 +1039,18 @@ define([
                 var subfeatures = [];
                 var strand;
                 var parentFeature;
-                var variantSelectionRecords = new Array();
+                var variantSelectionRecords = [];
 
                 for (var i in selection_records) {
-                    console.log('selection ' + i);
                     var type = selection_records[i].feature.get("type").toUpperCase();
                     if (JSONUtils.variantTypes.indexOf(type) != -1) {
                         // feature is a variant
                         variantSelectionRecords.push(selection_records[i]);
                         continue;
                     }
-                    else if (type == "indel") {
+                    else if (type == "INDEL") {
                         // feature is an indel and is not supported
-                        console.log("unsupported variant type: indel");
+                        console.log("unsupported variant type: INDEL");
                         continue;
                     }
 
@@ -1112,8 +1111,10 @@ define([
                         featureToAdd = new SimpleFeature({data: {strand: strand}});
                     }
                     if (!featureToAdd.get('name')) {
+                        // TODO: We can't guarantee that the featureToAdd has an id, this may end up undefined.
                         featureToAdd.set('name', featureToAdd.get('id'));
                     }
+                    featureToAdd.set('orig_id', featureToAdd.get('id'));
                     featureToAdd.set("strand", strand);
                     var fmin;
                     var fmax;
@@ -1152,9 +1153,11 @@ define([
                     var biotype ;
 
                     // TODO: pull from the server at some point
+                    // TODO: this list is duplicated
                     var recognizedBioType = [
-                        'transcript' ,'tRNA','snRNA','snoRNA','ncRNA','rRNA','mRNA','miRNA','repeat_region','transposable_element'
+                        'transcript' ,'tRNA','snRNA','snoRNA','ncRNA','rRNA','mRNA','miRNA','repeat_region','transposable_element','terminator'
                     ];
+                    var strandedOneLevelTypes = ['terminator'];
 
                     if(force_type) {
                         biotype = featureToAdd.get('type');
@@ -1173,14 +1176,16 @@ define([
 
                     var afeat ;
                     if(biotype === 'mRNA'){
+                        featureToAdd = JSONUtils.handleCigarSubFeatures(featureToAdd,biotype);
                         afeat = JSONUtils.createApolloFeature(featureToAdd, biotype, true);
                         featuresToAdd.push(afeat);
                     }
                     else if (biotype.endsWith('RNA')){
+                        featureToAdd = JSONUtils.handleCigarSubFeatures(featureToAdd,biotype);
                         target_track.createGenericAnnotations([featureToAdd], biotype, null , 'gene');
                     }
                     else {
-                        target_track.createGenericOneLevelAnnotations([featureToAdd], biotype , true );
+                        target_track.createGenericOneLevelAnnotations([featureToAdd], biotype , strandedOneLevelTypes.indexOf(biotype)<0);
                     }
 
                     var postData = {
@@ -1228,7 +1233,6 @@ define([
                         }
                     });
                     this.openDialog("Confirm", content);
-                    return;
                 }
                 else {
                     process();
@@ -1248,13 +1252,14 @@ define([
                                 { ref: this.refSeq.name, start: dragfeat.get('start'), end: dragfeat.get('end')},
                                 // feature callback
                                 function (seq) {
-                                    if (seq != dragfeat.get('reference_allele')) {
+                                    if (seq.toUpperCase() != dragfeat.get('reference_allele').toUpperCase()) {
                                         var variantPosition = dragfeat.get('start') + 1;
-                                        var message = "Cannot add variant at position: " + variantPosition + " since the REF allele does not match the genomic residues at that position."
+                                        var message = "Cannot add variant at position: " + variantPosition + " since the REF allele does not match the genomic residues at that position.";
                                         target_track.openDialog( 'Cannot Add Variant', message );
                                     }
                                     else {
                                         var afeat = JSONUtils.createApolloVariant(dragfeat, true);
+                                        afeat.orig_id = dojo.clone(dragfeat.id);
                                         featuresToAdd.push(afeat);
 
                                         var postData = {
@@ -1319,11 +1324,12 @@ define([
                         featureToAdd.set("end", fmax);
                         var afeat = JSONUtils.createApolloFeature(featureToAdd, type, true, subfeatType);
                         if (topLevelType) {
-                            var topLevel = new Object();
+                            var topLevel = {};
+                            topLevel.orig_id = dojo.clone(afeat.id);
                             topLevel.location = dojo.clone(afeat.location);
                             topLevel.type = dojo.clone(afeat.type);
                             topLevel.type.name = topLevelType;
-                            topLevel.children = new Array();
+                            topLevel.children = [];
                             topLevel.children.push(afeat);
                             afeat = topLevel;
                         }
@@ -1335,6 +1341,7 @@ define([
                             var afeat = JSONUtils.createApolloFeature(dragfeat, type, true, subfeatType);
                             if (topLevelType) {
                                 var topLevel = new Object();
+                                topLevel.orig_id = dojo.clone(afeat.id);
                                 topLevel.location = dojo.clone(afeat.location);
                                 topLevel.type = dojo.clone(afeat.type);
                                 topLevel.type.name = topLevelType;
@@ -1500,14 +1507,12 @@ define([
                         track.executeUpdateOperation(postData);
                     }
                     else if (feature.afeature.parent_id) {
-                        var feats = [feature];
                         this.createGenericAnnotations([feature], feature.get("type"), feature.get("subfeatures")[0].get("type"), feature.afeature.parent_type.name);
                     }
                     else {
                         if (!feature.get("name")) {
                             feature.set("name", feature.afeature.name);
                         }
-                        var feats = [feature];
                         this.createGenericOneLevelAnnotations([feature], feature.get("type"), feature.get("strand") == 0);
                     }
                 }
@@ -2517,7 +2522,7 @@ define([
                     innerHTML: "Delete",
                     'class': "annotation_info_editor_button"
                 }, pubmedIdButtons);
-                var pubmedss = "Use this field to indicate that this genomic element has been mentioned in a publication, or that a publication supports your functional annotations using GO IDs. Do not use this field to list publications containing related or similar genomic elements from other species that you may have used as evidence for this annotation.";
+                var pubmedss = "Use this field to indicate that this genomic element has been mentioned in a publication, or that a publication supports your functional annotations. Do not use this field to list publications containing related or similar genomic elements from other species that you may have used as evidence for this annotation.";
                 new Tooltip({
                     connectId: pubmedIdsDiv,
                     label: pubmedss,
@@ -2641,12 +2646,12 @@ define([
                             initVariantInfo(feature);
                             initPhenotypeOntology(feature);
                             initPubmedIds(feature, config);
-                            //initGoIds(feature, config);
+                            // initGoIds(feature, config);
                             initComments(feature, config);
 
                         }
                     });
-                };
+                }
 
                 function initTable(domNode, tableNode, table, timeout) {
                     var id = dojo.attr(tableNode, "id");
@@ -2654,7 +2659,7 @@ define([
                     if (!node) {
                         setTimeout(function () {
                             initTable(domNode, tableNode, table, timeout);
-                            return;
+
                         }, timeout);
                         return;
                     }
@@ -3658,144 +3663,6 @@ define([
                     }
                 };
 
-                //// initialize GO
-                //var initGoIds = function (feature, config) {
-                //    if (config.hasGoIds) {
-                //        var oldGoId;
-                //        var dirty = false;
-                //        var valid = true;
-                //        var editingRow = 0;
-                //        var goIds = new dojoItemFileWriteStore({
-                //            data: {
-                //                items: []
-                //            }
-                //        });
-                //        for (var i = 0; i < feature.dbxrefs.length; ++i) {
-                //            var dbxref = feature.dbxrefs[i];
-                //            if (dbxref.db == goIdDb) {
-                //                goIds.newItem({go_id: goIdDb + ":" + dbxref.accession});
-                //            }
-                //        }
-                //        var goIdTableLayout = [{
-                //            cells: [
-                //                {
-                //                    name: 'Gene Ontology ID',
-                //                    field: 'go_id', // '_item',
-                //                    width: '100%',
-                //                    type: declare(dojox.grid.cells._Widget, {
-                //                        widgetClass: dijitTextBox,
-                //                        createWidget: function (inNode, inDatum, inRowIndex) {
-                //                            var widget = new this.widgetClass(this.getWidgetProps(inDatum), inNode);
-                //                            var textBox = widget.domNode.childNodes[0].childNodes[0];
-                //                            dojo.connect(textBox, "onkeydown", function (event) {
-                //                                if (event.keyCode == dojo.keys.ENTER) {
-                //                                    if (dirty) {
-                //                                        dirty = false;
-                //                                        valid = validateGoId(textBox.value) ? true : false;
-                //                                    }
-                //                                }
-                //                            });
-                //                            var original = 'http://golr.geneontology.org/';
-                //                            //var original = 'http://golr.geneontology.org/solr/';
-                //                            //var original = 'http://golr.berkeleybop.org/solr/';
-                //                            var encoded_original = encodeURI(original);
-                //                            encoded_original = encoded_original.replace(/:/g, "%3A");
-                //                            encoded_original = encoded_original.replace(/\//g, "%2F");
-                //
-                //                            //var gserv = context_path + "/proxy/request/http/golr.geneontology.org%2Fsolr%2Fselect/json/";
-                //                            var gserv = context_path + "/proxy/request/" + encoded_original;
-                //                            var gconf = new bbop.golr.conf(amigo.data.golr);
-                //                            var args = {
-                //                                label_template: '{{annotation_class_label}} [{{annotation_class}}]',
-                //                                value_template: '{{annotation_class}}',
-                //                                list_select_callback: function (doc) {
-                //                                    dirty = false;
-                //                                    valid = true;
-                //                                    goIdTable.store.setValue(goIdTable.getItem(editingRow), "go_id", doc.annotation_class);
-                //                                }
-                //                            };
-                //                            var auto = new bbop.widget.search_box(gserv, gconf, textBox, args);
-                //                            auto.set_personality('bbop_term_ac');
-                //                            auto.add_query_filter('document_category', 'ontology_class');
-                //                            auto.add_query_filter('source', '(biological_process OR molecular_function OR cellular_component)');
-                //                            return widget;
-                //                        }
-                //                    }),
-                //                    formatter: function (goId, rowIndex, cell) {
-                //                        if (!goId) {
-                //                            return "Enter new Gene Ontology ID";
-                //                        }
-                //                        return goId;
-                //                    },
-                //                    editable: hasWritePermission
-                //                }
-                //            ]
-                //        }];
-                //
-                //        var goIdTable = new dojoxDataGrid({
-                //            singleClickEdit: true,
-                //            store: goIds,
-                //            updateDelay: 0,
-                //            structure: goIdTableLayout
-                //        });
-                //
-                //        var handle = dojo.connect(AnnotTrack.popupDialog, "onFocus", function () {
-                //            initTable(goIdTable.domNode, goIdsTable, goIdTable);
-                //            dojo.disconnect(handle);
-                //        });
-                //        if (reload) {
-                //            initTable(goIdTable.domNode, goIdsTable, goIdTable, timeout);
-                //        }
-                //
-                //        dojo.connect(goIdTable, "onStartEdit", function (inCell, inRowIndex) {
-                //            editingRow = inRowIndex;
-                //            oldGoId = goIdTable.store.getValue(goIdTable.getItem(inRowIndex), "go_id");
-                //            dirty = true;
-                //        });
-                //
-                //        // dojo.connect(goIdTable, "onApplyCellEdit", function(inValue, inRowIndex, inCellIndex) {
-                //        dojo.connect(goIdTable.store, "onSet", function (item, attribute, oldValue, newValue) {
-                //            if (dirty) {
-                //                return;
-                //            }
-                //            // var newGoId = goIdTable.store.getValue(goIdTable.getItem(inRowIndex),
-                //            // "go_id");
-                //            var newGoId = newValue;
-                //            if (!newGoId) {
-                //            }
-                //            else if (!oldGoId) {
-                //                addGoId(goIdTable, editingRow, newGoId, valid);
-                //            }
-                //            else {
-                //                if (newGoId != oldGoId) {
-                //                    // updateGoId(goIdTable, editingRow, oldGoId, newGoId);
-                //                    updateGoId(goIdTable, item, oldGoId, newGoId, valid);
-                //                }
-                //            }
-                //            goIdTable.render();
-                //        });
-                //
-                //        dojo.connect(addGoIdButton, "onclick", function () {
-                //            goIdTable.store.newItem({go_id: ""});
-                //            goIdTable.scrollToRow(goIdTable.rowCount);
-                //        });
-                //
-                //        dojo.connect(deleteGoIdButton, "onclick", function () {
-                //            var toBeDeleted = new Array();
-                //            var selected = goIdTable.selection.getSelected();
-                //            for (var i = 0; i < selected.length; ++i) {
-                //                var item = selected[i];
-                //                var goId = goIdTable.store.getValue(item, "go_id");
-                //                toBeDeleted.push({db: goIdDb, accession: goId.substr(goIdDb.length + 1)});
-                //            }
-                //            goIdTable.removeSelectedRows();
-                //            deleteGoIds(toBeDeleted);
-                //        });
-                //    }
-                //    else {
-                //        dojo.style(goIdsDiv, "display", "none");
-                //    }
-                //};
 
 
                 // initialize Comments
@@ -4418,7 +4285,6 @@ define([
                 var nameField = new dijitTextBox({'class': "annotation_editor_field"});
                 var nameLabelss = "Follow GenBank or UniProt-SwissProt guidelines for gene, protein, and CDS nomenclature.";
                 dojo.place(nameField.domNode, nameDiv);
-                // var nameField = new dojo.create("input", { type: "text" }, nameDiv);
 
                 new Tooltip({
                     connectId: nameDiv,
@@ -4533,7 +4399,7 @@ define([
                     innerHTML: "Delete",
                     'class': "annotation_info_editor_button"
                 }, pubmedIdButtons);
-                var pubmedss = "Use this field to indicate that this genomic element has been mentioned in a publication, or that a publication supports your functional annotations using GO IDs. Do not use this field to list publications containing related or similar genomic elements from other species that you may have used as evidence for this annotation.";
+                var pubmedss = "Use this field to indicate that this genomic element has been mentioned in a publication, or that a publication supports your functional annotations. Do not use this field to list publications containing related or similar genomic elements from other species that you may have used as evidence for this annotation.";
                 new Tooltip({
                     connectId: pubmedIdsDiv,
                     label: pubmedss,
@@ -4599,8 +4465,6 @@ define([
                     dojo.attr(deleteGoIdButton, "disabled", true);
                     dojo.attr(addCommentButton, "disabled", true);
                     dojo.attr(deleteCommentButton, "disabled", true);
-                    //dojo.attr(addreplacementButton, "disabled", true);
-                    //dojo.attr(deletereplacementButton, "disabled", true);
                 }
 
                 var pubmedIdDb = "PMID";
@@ -4640,7 +4504,6 @@ define([
                             initSymbol(feature);
                             initDescription(feature);
                             initDates(feature);
-                            // initStatus(feature, config);
                             initStatus(feature);
                             initDbxrefs(feature, config);
                             initAttributes(feature, config);
@@ -4658,7 +4521,6 @@ define([
                     if (!node) {
                         setTimeout(function () {
                             initTable(domNode, tableNode, table, timeout);
-                            return;
                         }, timeout);
                         return;
                     }
@@ -4749,7 +4611,7 @@ define([
                             var statusRadio = new dijitRadioButton({
                                 value: status[i],
                                 name: "status_" + uniqueName,
-                                checked: status[i] == feature.status ? true : false
+                                checked: status[i] == feature.status
                             });
                             if (!hasWritePermission) {
                                 statusRadio.set("disabled", true);
@@ -4785,6 +4647,7 @@ define([
                         dojo.style(statusDiv, "display", "none");
                     }
                 };
+
 
                 var initDbxrefs = function (feature, config) {
                     if (config.hasDbxrefs) {
@@ -5110,7 +4973,7 @@ define([
                 };
 
                 var initGoIds = function (feature, config) {
-                    if (config.hasGoIds) {
+                    if (false && config.hasGoIds) {
                         var oldGoId;
                         var dirty = false;
                         var valid = true;
@@ -5132,45 +4995,45 @@ define([
                                     name: 'Gene Ontology ID',
                                     field: 'go_id', // '_item',
                                     width: '100%',
-                                    type: declare(dojox.grid.cells._Widget, {
-                                        widgetClass: dijitTextBox,
-                                        createWidget: function (inNode, inDatum, inRowIndex) {
-                                            var widget = new this.widgetClass(this.getWidgetProps(inDatum), inNode);
-                                            var textBox = widget.domNode.childNodes[0].childNodes[0];
-                                            dojo.connect(textBox, "onkeydown", function (event) {
-                                                if (event.keyCode == dojo.keys.ENTER) {
-                                                    if (dirty) {
-                                                        dirty = false;
-                                                        valid = validateGoId(textBox.value) ? true : false;
-                                                    }
-                                                }
-                                            });
-                                            var original = 'http://golr.geneontology.org/';
-                                            //var original = 'http://golr.geneontology.org/solr/';
-                                            //var original = 'http://golr.berkeleybop.org/solr/';
-                                            var encoded_original = encodeURI(original);
-                                            encoded_original = encoded_original.replace(/:/g, "%3A");
-                                            encoded_original = encoded_original.replace(/\//g, "%2F");
-
-                                            //var gserv = context_path + "/proxy/request/http/golr.geneontology.org%2Fsolr%2Fselect/json/";
-                                            var gserv = context_path + "/proxy/request/" + encoded_original;
-                                            var gconf = new bbop.golr.conf(amigo.data.golr);
-                                            var args = {
-                                                label_template: '{{annotation_class_label}} [{{annotation_class}}]',
-                                                value_template: '{{annotation_class}}',
-                                                list_select_callback: function (doc) {
-                                                    dirty = false;
-                                                    valid = true;
-                                                    goIdTable.store.setValue(goIdTable.getItem(editingRow), "go_id", doc.annotation_class);
-                                                }
-                                            };
-                                            var auto = new bbop.widget.search_box(gserv, gconf, textBox, args);
-                                            auto.set_personality('bbop_term_ac');
-                                            auto.add_query_filter('document_category', 'ontology_class');
-                                            auto.add_query_filter('source', '(biological_process OR molecular_function OR cellular_component)');
-                                            return widget;
-                                        }
-                                    }),
+                                    // type: declare(dojox.grid.cells._Widget, {
+                                    //     widgetClass: dijitTextBox,
+                                    //     createWidget: function (inNode, inDatum, inRowIndex) {
+                                    //         var widget = new this.widgetClass(this.getWidgetProps(inDatum), inNode);
+                                    //         var textBox = widget.domNode.childNodes[0].childNodes[0];
+                                    //         dojo.connect(textBox, "onkeydown", function (event) {
+                                    //             if (event.keyCode == dojo.keys.ENTER) {
+                                    //                 if (dirty) {
+                                    //                     dirty = false;
+                                    //                     valid = validateGoId(textBox.value) ? true : false;
+                                    //                 }
+                                    //             }
+                                    //         });
+                                    //         var original = 'http://golr.geneontology.org/';
+                                    //         //var original = 'http://golr.geneontology.org/solr/';
+                                    //         //var original = 'http://golr.berkeleybop.org/solr/';
+                                    //         var encoded_original = encodeURI(original);
+                                    //         encoded_original = encoded_original.replace(/:/g, "%3A");
+                                    //         encoded_original = encoded_original.replace(/\//g, "%2F");
+                                    //
+                                    //         //var gserv = context_path + "/proxy/request/http/golr.geneontology.org%2Fsolr%2Fselect/json/";
+                                    //         var gserv = context_path + "/proxy/request/" + encoded_original;
+                                    //         var gconf = new bbop.golr.conf(amigo.data.golr);
+                                    //         var args = {
+                                    //             label_template: '{{annotation_class_label}} [{{annotation_class}}]',
+                                    //             value_template: '{{annotation_class}}',
+                                    //             list_select_callback: function (doc) {
+                                    //                 dirty = false;
+                                    //                 valid = true;
+                                    //                 goIdTable.store.setValue(goIdTable.getItem(editingRow), "go_id", doc.annotation_class);
+                                    //             }
+                                    //         };
+                                    //         var auto = new bbop.widget.search_box(gserv, gconf, textBox, args);
+                                    //         auto.set_personality('bbop_term_ac');
+                                    //         auto.add_query_filter('document_category', 'ontology_class');
+                                    //         auto.add_query_filter('source', '(biological_process OR molecular_function OR cellular_component)');
+                                    //         return widget;
+                                    //     }
+                                    // }),
                                     formatter: function (goId, rowIndex, cell) {
                                         if (!goId) {
                                             return "Enter new Gene Ontology ID";
@@ -5717,7 +5580,7 @@ define([
             getHistoryForSelectedFeatures: function (selected) {
                 var track = this;
                 var content = dojo.create("div");
-                var historyDiv = dojo.create("div", {className: "history_div"}, content);
+                var historyDiv = dojo.create("div", {className: "jbrowse history_div"}, content);
                 var historyTable = dojo.create("div", {className: "history_table"}, historyDiv);
                 var historyHeader = dojo.create("div", {
                     className: "history_header",
@@ -5750,8 +5613,7 @@ define([
                     current = selectedIndex;
                     cleanUpHistoryTable();
                     displayHistory();
-                };
-
+                }
                 var cleanUpHistoryTable = function() {
                     while (historyRows.hasChildNodes()) {
                         historyRows.removeChild(historyRows.lastChild);
@@ -5779,9 +5641,10 @@ define([
 
                     // if feature-render annot-render ,
                     // remove and add: gray-center-10pct
-                    if(div.className.indexOf("feature-render")>=0 &&  div.className.indexOf("annot-render")>=0 ){
-                        div.className = "gray-center-10pct";
-                    }
+                    // var className = div.className ;
+                    // if(typeof div.className === 'string' && div.className.indexOf("feature-render")>=0 &&  div.className.indexOf("annot-render")>=0 ){
+                    //     div.className = "gray-center-10pct";
+                    // }
 // annot_context_menu.unBindDomNode(div);
                     $(div).unbind();
                     for (var i = 0; i < div.childNodes.length; ++i) {
@@ -6026,12 +5889,16 @@ define([
                             information += "Unique id: " + feature.uniquename + "<br/>";
                             information += "Date of creation: " + feature.time_accessioned + "<br/>";
                             information += "Owner: " + feature.owner + "<br/>";
+                            information += "Location: " + feature.location+ "<br/>";
+                            if(feature.length){
+                                information += "Length: " + feature.length+ "<br/>";
+                            }
                             if (feature.parent_ids) {
                                 information += "Parent ids: " + feature.parent_ids + "<br/>";
                             }
                         }
                         if (feature.justification) {
-                            information += "Justification: " + feature.justification + "<br/>";
+                            information += "Comment: " + feature.justification + "<br/>";
                         }
                         track.openDialog("Annotation information", information);
                     },
@@ -6089,8 +5956,8 @@ define([
                         handleAs: "text",
                         timeout: 5000 * 1000, // Time in milliseconds
                         load: function (response, ioArgs) {
-                            var textAreaContent = response;
-                            dojo.attr(textArea, "innerHTML", textAreaContent);
+                            // Response is the textarea content;
+                            dojo.attr(textArea, "innerHTML", response);
                         },
                         // The ERROR function will be called in an error case.
                         error: function (response, ioArgs) {
@@ -6342,7 +6209,11 @@ define([
                     load: function (response, ioArgs) {
                         dojo.create("a", {
                             innerHTML: response.filename,
-                            href: context_path + "/IOService/download?uuid=" + response.uuid + "&exportType=" + response.exportType + "&seqType=" + response.sequenceType + "&format=" + response.format
+                            href: context_path + "/IOService/download?uuid=" + response.uuid + "&exportType=" + response.exportType + "&seqType=" + response.sequenceType + "&format=" + response.format,
+                            onclick:  function(){
+                                track.closeDialog();
+                            }
+
                         }, content);
                         dojo.style(waitingDiv, {display: "none"});
                     },
@@ -6386,7 +6257,7 @@ define([
                             break;
                         }
                     }
-                };
+                }
                 if (selected && (selected.length > 0)) {
 
 
@@ -6458,7 +6329,7 @@ define([
                             break;
                         }
                     }
-                };
+                }
                 if (selected && (selected.length > 0)) {
 
 
@@ -6753,6 +6624,10 @@ define([
             },
 
             initAnnotContextMenu: function () {
+
+                // TODO: this list is duplicated
+                var topTypes = ['repeat_region','transposable_element','gene','pseudogene', 'SNV', 'SNP', 'MNV', 'MNP', 'indel', 'insertion', 'deletion','terminator'];
+
                 var thisB = this;
                 contextMenuItems = new Array();
                 annot_context_menu = new dijit.Menu({});
@@ -6793,7 +6668,6 @@ define([
                         var selected = thisB.selectionManager.getSelection();
                         var selectedFeature = selected[0].feature;
                         var selectedFeatureDetails = selectedFeature.afeature;
-                        var topTypes = ['repeat_region','transposable_element','gene','pseudogene', 'SNV', 'SNP', 'MNV', 'MNP', 'indel', 'insertion', 'deletion'];
                         while(selectedFeature  ){
                             if(topTypes.indexOf(selectedFeatureDetails.type.name)>=0){
                                 thisB.getApollo().viewInAnnotationPanel(selectedFeatureDetails.name);
@@ -6885,12 +6759,27 @@ define([
                         }
                     }));
                     changeAnnotationMenu.addChild(new dijitMenuItem( {
+                        label: "terminator",
+                        onclick: function(event) {
+                            var selected = thisB.selectionManager.getSelection();
+                            var selectedFeatureType = selected[0].feature.afeature.type.name === "exon" ?
+                                selected[0].feature.afeature.parent_type.name : selected[0].feature.afeature.type.name;
+                            if (selectedFeatureType != "transposable_element" && selectedFeatureType != "repeat_region") {
+                                var message = "Warning: You will not be able to revert back to " + selectedFeatureType + " via 'Change annotation type' menu option, use 'Undo' instead. Do you want to proceed?";
+                                thisB.confirmChangeAnnotationType(thisB, [selected], "terminator", message);
+                            }
+                            else {
+                                thisB.changeAnnotationType("terminator");
+                            }
+                        }
+                    }));
+                    changeAnnotationMenu.addChild(new dijitMenuItem( {
                         label: "repeat_region",
                         onClick: function(event) {
                             var selected = thisB.selectionManager.getSelection();
                             var selectedFeatureType = selected[0].feature.afeature.type.name === "exon" ?
                                 selected[0].feature.afeature.parent_type.name : selected[0].feature.afeature.type.name;
-                            if (selectedFeatureType != "transposable_element") {
+                            if (selectedFeatureType != "transposable_element" && selectedFeatureType != "terminator" ) {
                                 var message = "Warning: You will not be able to revert back to " + selectedFeatureType + " via 'Change annotation type' menu option, use 'Undo' instead. Do you want to proceed?";
                                 thisB.confirmChangeAnnotationType(thisB, [selected], "repeat_region", message);
                             }
@@ -6905,7 +6794,7 @@ define([
                             var selected = thisB.selectionManager.getSelection();
                             var selectedFeatureType = selected[0].feature.afeature.type.name === "exon" ?
                                 selected[0].feature.afeature.parent_type.name : selected[0].feature.afeature.type.name;
-                            if (selectedFeatureType != "repeat_region") {
+                            if (selectedFeatureType != "repeat_region" && selectedFeatureType != "terminator") {
                                 var message = "Warning: You will not be able to revert back to " + selectedFeatureType + " via 'Change annotation type' menu option, use 'Undo' instead. Do you want to proceed?";
                                 thisB.confirmChangeAnnotationType(thisB, [selected], "transposable_element", message);
                             }
@@ -7414,12 +7303,12 @@ define([
             updateDissociateTranscriptFromGeneItem: function() {
                 var menuItem = this.getMenuItem("dissociate_transcript_from_gene");
                 var selected = this.selectionManager.getSelection();
-                var currentType = selected[0].feature.get('type');
                 if (selected.length != 1) {
                     menuItem.set("disabled", true);
                     return;
                 }
-                if (JSONUtils.variantTypes.includes(currentType.toUpperCase())) {
+                var currentType = selected[0].feature.get('type');
+                if (JSONUtils.variantTypes.includes(currentType.toUpperCase()) || JSONUtils.regulatorTypes.includes(currentType.toUpperCase())) {
                     menuItem.set("disabled", true);
                     return;
                 }
@@ -7457,7 +7346,7 @@ define([
                             menuItems[i].setDisabled(false);
                         }
                     }
-                    else if (selectedType === "miRNA" || selectedType == "snRNA" || selectedType === "snoRNA" ||
+                    else if (selectedType === "miRNA" || selectedType === "snRNA" || selectedType === "snoRNA" ||
                         selectedType === "rRNA" || selectedType === "tRNA" || selectedType === "ncRNA") {
                         if (menuItems[i].label === selectedType) {
                             menuItems[i].setDisabled(true);
@@ -7483,6 +7372,9 @@ define([
                         }
                     }
                     else if (JSONUtils.variantTypes.includes(selectedType.toUpperCase())) {
+                        menuItems[i].setDisabled(true);
+                    }
+                    else if (JSONUtils.regulatorTypes.includes(selectedType.toUpperCase())) {
                         menuItems[i].setDisabled(true);
                     }
                     else {
@@ -8271,7 +8163,16 @@ define([
                     // console.log("removing base residued text from selected annot");
                     $("div.annot-sequence", track.div).remove();
                     delete this.currentResizableFeature;
-                    $(featdiv).resizable("destroy");
+                    if ($(featdiv).hasClass("resizable")) {
+                        $(featdiv).resizable("destroy");
+                        if (this.verbose_selection || this.verbose_selection_notification)
+                            console.log("AnnotTrack: selectionRemoved -- feature's 'resizable' class destroyed.");
+                    }
+                    // this case happens when a user double-clicks on a feature in the annotation panel;
+                    // double-clicking removes resizability of selected object(s)
+                    else if (this.verbose_selection || this.verbose_selection_notification) {
+                        console.log("AnnotTrack: selectionRemoved -- feature's  'resizable' was previously destroyed.");
+                    }
                 }
             },
 
@@ -8294,9 +8195,7 @@ define([
                     postObject.clientToken = this.getClientToken();
                     postData = JSON.stringify(postObject);
                 }
-                console.log('connected and sending notifications');
                 this.client.send("/app/AnnotationNotification", {}, JSON.stringify(postData));
-                console.log('sent notification message');
             },
 
             isProteinCoding: function (feature) {

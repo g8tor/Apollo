@@ -248,6 +248,10 @@ class PermissionService {
      */
     Map<String, Integer> getPermissionsForUser(User user) {
         Map<String, Integer> returnMap = new HashMap<>()
+        if(!user) {
+            log.warn("No user provided, please log in")
+            return returnMap
+        }
         returnMap.put(user.username, 0)
         Organism.all.each { organism ->
             List<PermissionEnum> permissionEnums = getOrganismPermissionsForUser(organism, user)
@@ -542,7 +546,12 @@ class PermissionService {
      */
     Boolean hasGlobalPermissions(JSONObject jsonObject, GlobalPermissionEnum permissionEnum) {
         // check the authentication
+        // we need to validate the session before we check for the username
         jsonObject = validateSessionForJsonObject(jsonObject)
+        if(jsonObject.username == null){
+            log.debug("User not logged in")
+            return false
+        }
         User user = User.findByUsername(jsonObject.username)
         if (!user) {
             log.error("User ${jsonObject.username} does not exist in the database.")
@@ -696,6 +705,14 @@ class PermissionService {
             return user?.id == jsonObject.userId
         }
         return false
+    }
+
+    @Transactional
+    def removeAllPermissions(Organism organism){
+        def userPermissions = UserOrganismPermission.findAllByOrganism(organism)
+        UserOrganismPermission.deleteAll(userPermissions)
+        def groupPermissions = GroupOrganismPermission.findAllByOrganism(organism)
+        GroupOrganismPermission.deleteAll(groupPermissions)
     }
 
     @NotTransactional

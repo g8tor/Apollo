@@ -36,7 +36,7 @@ class FeatureService {
     public static final String MANUALLY_DISSOCIATE_TRANSCRIPT_FROM_GENE = "Manually dissociate transcript from gene"
     public static final
     def rnaFeatureTypes = [MRNA.cvTerm, MiRNA.cvTerm, NcRNA.cvTerm, RRNA.cvTerm, SnRNA.cvTerm, SnoRNA.cvTerm, TRNA.cvTerm, Transcript.cvTerm]
-    public static final def singletonFeatureTypes = [RepeatRegion.cvTerm, TransposableElement.cvTerm]
+    public static final def singletonFeatureTypes = [RepeatRegion.cvTerm, TransposableElement.cvTerm,Terminator.cvTerm]
 
     @Timed
     @Transactional
@@ -153,6 +153,19 @@ class FeatureService {
             feature.addToOwners(owner)
         } else {
             log.warn "user ${owner} or feature ${feature} is null so not setting"
+        }
+    }
+
+    @Transactional
+    def addOwnersByString(def username,Feature... features){
+        User owner = User.findByUsername(username as String)
+        if (owner && features) {
+            log.debug "setting owner for feature ${features} to ${owner}"
+            features.each{
+                it.addToOwners(owner)
+            }
+        } else {
+            log.warn "user ${owner} or feature ${features} is null so not setting"
         }
     }
 
@@ -281,7 +294,7 @@ class FeatureService {
                         }
 
                         if (!suppressHistory) {
-                            tmpTranscript.name = nameService.generateUniqueName(tmpTranscript, tmpGene.name)
+                            tmpTranscript.name = nameService.generateUniqueName(tmpTranscript, tmpGene?.name)
                         }
 
                         // setting back the original name for transcript
@@ -1410,6 +1423,16 @@ public void setTranslationEnd(Transcript transcript, int translationEnd) {
             } else {
                 gsolFeature.setLastUpdated(new Date());
             }
+            if(configWrapperService.storeOrigId()){
+                if (jsonFeature.has(FeatureStringEnum.ORIG_ID.value)) {
+                    FeatureProperty gsolProperty = new FeatureProperty()
+                    gsolProperty.setTag(FeatureStringEnum.ORIG_ID.value)
+                    gsolProperty.setValue(jsonFeature.get(FeatureStringEnum.ORIG_ID.value))
+                    gsolProperty.setFeature(gsolFeature)
+                    gsolProperty.save()
+                    gsolFeature.addToFeatureProperties(gsolProperty)
+                }
+            }
             if (jsonFeature.has(FeatureStringEnum.PROPERTIES.value)) {
                 JSONArray properties = jsonFeature.getJSONArray(FeatureStringEnum.PROPERTIES.value);
                 for (int i = 0; i < properties.length(); ++i) {
@@ -1527,6 +1550,7 @@ public void setTranslationEnd(Transcript transcript, int translationEnd) {
             case Pseudogene.ontologyId: return new Pseudogene()
             case Transcript.ontologyId: return new Transcript()
             case TransposableElement.ontologyId: return new TransposableElement()
+            case Terminator.ontologyId: return new Terminator()
             case RepeatRegion.ontologyId: return new RepeatRegion()
             case InsertionArtifact.ontologyId: return new InsertionArtifact()
             case DeletionArtifact.ontologyId: return new DeletionArtifact()
@@ -1570,6 +1594,8 @@ public void setTranslationEnd(Transcript transcript, int translationEnd) {
                 case Pseudogene.cvTerm.toUpperCase(): return Pseudogene.ontologyId
                 case TransposableElement.alternateCvTerm.toUpperCase():
                 case TransposableElement.cvTerm.toUpperCase(): return TransposableElement.ontologyId
+                case Terminator.alternateCvTerm.toUpperCase():
+                case Terminator.cvTerm.toUpperCase(): return Terminator.ontologyId
                 case RepeatRegion.alternateCvTerm.toUpperCase():
                 case RepeatRegion.cvTerm.toUpperCase(): return RepeatRegion.ontologyId
                 case InsertionArtifact.cvTerm.toUpperCase(): return InsertionArtifact.ontologyId
@@ -1901,6 +1927,9 @@ public void setTranslationEnd(Transcript transcript, int translationEnd) {
         }
         if (gsolFeature.symbol) {
             jsonFeature.put(FeatureStringEnum.SYMBOL.value, gsolFeature.symbol);
+        }
+        if (gsolFeature.status) {
+            jsonFeature.put(FeatureStringEnum.STATUS.value, gsolFeature.status.value);
         }
         if (gsolFeature.description) {
             jsonFeature.put(FeatureStringEnum.DESCRIPTION.value, gsolFeature.description);

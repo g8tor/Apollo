@@ -105,6 +105,41 @@ environments {
     }
 }
 
+//apollo {
+//    only_owners_delete = true
+//    common_data_directory = "/opt/temporary/apollo"
+//    store_orig_id = false
+//    sequence_search_tools {
+//        blat_nuc {
+//            search_exe = "/usr/local/bin/blastn"
+//            search_class = "org.bbop.apollo.sequence.search.blast.BlastCommandLine"
+//            name = "Blast nucleotide"
+//            params = ""
+//        }
+//        blat_prot {
+//            search_exe = "/usr/local/bin/tblastn"
+//            search_class = "org.bbop.apollo.sequence.search.blast.BlastCommandLine"
+//            name = "Blast protein to translated nucleotide"
+//            params = ""
+//            //tmp_dir: "/opt/apollo/tmp" optional param
+//        }
+//    }
+//    extraTabs = [
+//            ['title': 'extra1', 'url': 'http://localhost:8080/apollo/annotator/report/'],
+//            ['title': 'extra2', 'content': '<b>Apollo</b> documentation <a href="http://genomearchitect.org" target="_blank">linked here</a>']
+//    ]
+//
+////    extraTabs = [
+////        tab1: [
+////            title : 'extra1',
+////            url : 'http://localhost:8080/apollo/annotator/report/'
+////        ],
+////        tab2: ['title': 'extra2',
+////               'content': '<b>Some content</b><a href="http://google.com" target="_blank">Google</a>'
+////        ]
+////    ]
+//}
+
 // Uncomment to change the default memory configurations
 //grails.project.fork = [
 //        test   : false,
@@ -121,12 +156,11 @@ environments {
 //jbrowse {
 //    git {
 //        url= "https://github.com/GMOD/jbrowse"
-//        tag = "maint/1.12.5-apollo"
+//         tag = "1.16.3-release"
+////        branch = "dev"
+////        hash = "09b71099bf73c50d37a0e911baf06b4975e3f6ca"
 //        alwaysPull = true
 //        alwaysRecheck = true
-//
-//	// Warning: We are still testing the performance of NeatFeatures plugins in combination with Apollo.
-//	// We advise caution if enabling these plugins with Apollo until this process is finalized.
 //    }
 //    plugins {
 //        NeatHTMLFeatures{
@@ -141,17 +175,16 @@ environments {
 //        HideTrackLabels{
 //            included = true
 //        }
-//        MyVariantInfo {
-//            git = 'https://github.com/GMOD/myvariantviewer'
-//            branch = 'master'
-//            alwaysRecheck = "true"
-//            alwaysPull = "true"
-//        }
-//        SashimiPlot {
-//            git = 'https://github.com/cmdcolin/sashimiplot'
-//            branch = 'master'
-//            alwaysPull = "true"
-//        }
+////        MyVariantInfo {
+////            git = 'https://github.com/GMOD/myvariantviewer'
+////            branch = 'master'
+////            alwaysRecheck = "true"
+////            alwaysPull = "true"
+////        }
+////        SashimiPlot {
+////            git = 'https://github.com/cmdcolin/sashimiplot'
+////            branch = 'master'
+////            alwaysPull = "true"
+////        }
 //    }
 //}
-

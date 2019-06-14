@@ -1,7 +1,8 @@
 {
     "plugins" : [
       {
-         "location" : "./plugins/WebApollo",
+        "pluginsDir" : "./plugins/WebApollo",
+         "location" : "./plugins/WebApollo/js",
          "name" : "WebApollo"
       }
    ],
@@ -22,6 +23,10 @@
             },
             "arrowheadClass" : "annot-arrowhead",
             "alternateClasses" : {
+               "terminator" : {
+                  "renderClassName" : "terminator-render annot-apollo",
+                  "className" : "terminator"
+               },
                "transposable_element" : {
                   "renderClassName" : "blue-ibeam-render annot-apollo",
                   "className" : "blue-ibeam"
