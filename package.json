@@ -16,7 +16,6 @@
   "devDependencies": {
     "eslint": "^7.17.0"
   },
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/GMOD/Apollo.git"
@@ -31,7 +30,5 @@
   "homepage": "https://github.com/GMOD/Apollo#readme",
   "jbrowsePlugin": {
     "name": "WebApollo"
-  "dependencies": {
-    "@gmod/jbrowse": "github:NAL-i5K/jbrowse#e9a005cf86a40ad4b2a4aaebcbf914a866ff7f3b"
   }
 }
