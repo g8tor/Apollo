@@ -13,7 +13,21 @@
 <head>
 
     <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-    <title>Login</title>
+
+    <!-- USWDS Design Systenm -->
+    
+    <!-- Source Sans Pro Google Font -->
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@200;300;400;600;700&display=swap" rel="stylesheet">
+    
+    <title>Apollo Login</title>
+
+    <style>
+    body {
+        font-family: 'Source Sans Pro', sans-serif !important; 
+    }
+    </style>
+
     <script>
         var context;
         $(document).ready(function () {
@@ -36,10 +50,12 @@
 
         function login() {
             var username = $("#username").val();
+
             if (!username) {
                 alert("Missing username");
                 return;
             }
+
             var password = $("#password").val();
             var remember_me = $("#remember_me").val();
             var json = new Object();
@@ -80,11 +96,7 @@
 
     <div class="input-group" style="margin-bottom: 5px;margin-top: 5px;">
         <input class="form-control" type="text" id="username" placeholder="Username" autofocus="autofocus"/>
-    </div>
-
-    <div class="input-group" style="margin-bottom: 5px">
-        <input class="form-control" type="password" id="password" placeholder="Password"/>
-    </div>
+    </div> <!-- Government Banner -->
 
     %{-- <div class="button_login"> --}%
     <button class="btn btn-primary" id="login_button">Login</button>
@@ -98,5 +110,8 @@
 
     %{--</div>--}%
     <div id="message"></div>
+
+<!-- Footer -->
+
 </body>
 </html>
