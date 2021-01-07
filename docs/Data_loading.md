@@ -1,6 +1,19 @@
 # Data generation pipeline
 
-The data generation pipeline is based on the typical jbrowse commands such as prepare-refseqs.pl and
+## Automated Configuration and upload
+
+Admin users may upload FASTA files to create new genomes and upload most track types in a similar manner if a default configuration is desirable.   
+
+![](images/AddGenomeSmall.png)
+
+Additionally admin users may also add most tracks in a similar fashion:
+
+![](images/AddTrackSmall.png)
+
+
+## Manual Configuration
+
+The manual data generation pipeline is based on the typical jbrowse commands such as prepare-refseqs.pl and
 flatfile-to-json.pl, and these scripts are automatically copied to a local bin/ directory when you run the setup scripts
 (e.g. `apollo run-local` or `apollo deploy` or `install_jbrowse.sh`).
 

@@ -25,10 +25,10 @@ class SecurityFilters {
         // TODO: route more controllers through here
         all(controller: '*', action: '*') {
             before = {
-                if (controllerName == "organism"
-                        || controllerName == "home"
+                if ( controllerName == "home"
                         || controllerName == "cannedKey"
                         || controllerName == "cannedValue"
+                        || controllerName == "suggestedName"
                         || controllerName == "cannedComment"
                         || controllerName == "availableStatus"
                         || controllerName == "proxy"

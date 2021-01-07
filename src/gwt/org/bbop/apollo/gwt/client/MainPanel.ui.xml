@@ -49,7 +49,7 @@
             color: white;
             font-size: smaller;
             height: 25px;
-            width: 100px;
+            width: 200px;
         }
 
         .lookup-display:focus {
@@ -64,7 +64,7 @@
             color: white;
             font-size: smaller;
             height: 25px;
-            width: 100px;
+            width: 150px;
         }
 
         .northPanel {
@@ -183,6 +183,10 @@
                         <gwt:tab>
                             <gwt:header>Ref Sequence</gwt:header>
                             <apollo:SequencePanel ui:field="sequencePanel"/>
+                        </gwt:tab>
+                        <gwt:tab>
+                          <gwt:header>Search</gwt:header>
+                          <apollo:SearchPanel ui:field="searchPanel"/>
                         </gwt:tab>
                         <gwt:tab>
                             <gwt:header>Organism</gwt:header>

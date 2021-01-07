@@ -1,16 +1,9 @@
 package org.bbop.apollo
 
-import grails.converters.JSON
 import grails.transaction.Transactional
-import grails.util.CollectionUtils
 import org.bbop.apollo.gwt.shared.FeatureStringEnum
-import org.codehaus.groovy.grails.web.json.JSONException
-import org.codehaus.groovy.grails.web.json.JSONObject
-import org.codehaus.groovy.grails.web.json.JSONArray
-import org.grails.plugins.metrics.groovy.Timed
 
 
-//@GrailsCompileStatic
 @Transactional(readOnly = true)
 class TranscriptService {
 
@@ -31,7 +24,7 @@ class TranscriptService {
      *
      * @return CDS associated with this transcript
      */
-    public CDS getCDS(Transcript transcript) {
+    CDS getCDS(Transcript transcript) {
         return (CDS) featureRelationshipService.getChildForFeature(transcript, CDS.ontologyId)
 
     }
@@ -42,11 +35,11 @@ class TranscriptService {
      *
      * @return Collection of exons associated with this transcript
      */
-    public Collection<Exon> getExons(Transcript transcript) {
+    Collection<Exon> getExons(Transcript transcript) {
         return (Collection<Exon>) featureRelationshipService.getChildrenForFeatureAndTypes(transcript, Exon.ontologyId)
     }
 
-    public Collection<Exon> getSortedExons(Transcript transcript, boolean sortByStrand ) {
+    Collection<Exon> getSortedExons(Transcript transcript, boolean sortByStrand ) {
         Collection<Exon> exons = getExons(transcript)
         List<Exon> sortedExons = new LinkedList<Exon>(exons);
         Collections.sort(sortedExons, new FeaturePositionComparator<Exon>(sortByStrand))
@@ -59,20 +52,28 @@ class TranscriptService {
      *
      * @return Gene that this Transcript is associated with
      */
-    public Gene getGene(Transcript transcript) {
+    Gene getGene(Transcript transcript) {
         return (Gene) featureRelationshipService.getParentForFeature(transcript, Gene.ontologyId, Pseudogene.ontologyId)
     }
 
-    public Pseudogene getPseudogene(Transcript transcript) {
+    Pseudogene getPseudogene(Transcript transcript) {
         return (Pseudogene) featureRelationshipService.getParentForFeature(transcript, Pseudogene.ontologyId)
     }
 
-    public boolean isProteinCoding(Transcript transcript) {
+    boolean isProteinCoding(Transcript transcript) {
         return transcript instanceof MRNA
 //        if (getGene(transcript) != null && getGene(transcript) instanceof Pseudogene) {
 //            return false;
 //        }
 //        return true;
+    }
+
+    @Transactional
+    def removeCDS(Transcript transcript) {
+        CDS cds = getCDS(transcript)
+        featureRelationshipService.removeFeatureRelationship(transcript,cds)
+        cds.delete()
+        return transcript
     }
 
     @Transactional
@@ -134,7 +135,7 @@ class TranscriptService {
      *
      * @return Collection of transcripts associated with this gene
      */
-    public Collection<Transcript> getTranscripts(Gene gene) {
+    Collection<Transcript> getTranscripts(Gene gene) {
         return (Collection<Transcript>) featureRelationshipService.getChildrenForFeatureAndTypes(gene, ontologyIds as String[])
     }
 
@@ -143,7 +144,7 @@ class TranscriptService {
     }
 
     @Transactional
-    public void setFmin(Transcript transcript, Integer fmin) {
+    void setFmin(Transcript transcript, Integer fmin) {
         transcript.getFeatureLocation().setFmin(fmin);
         Gene gene = getGene(transcript)
         if (gene != null && fmin < gene.getFmin()) {
@@ -152,7 +153,7 @@ class TranscriptService {
     }
 
     @Transactional
-    public void setFmax(Transcript transcript, Integer fmax) {
+    void setFmax(Transcript transcript, Integer fmax) {
         transcript.getFeatureLocation().setFmax(fmax);
         Gene gene = getGene(transcript)
         if (gene != null && fmax > gene.getFmax()) {
@@ -160,9 +161,9 @@ class TranscriptService {
         }
     }
 
-    @Transactional
-    def updateGeneBoundaries(Transcript transcript) {
-        Gene gene = getGene(transcript)
+  @Transactional
+  def updateGeneBoundaries(Transcript transcript) {
+    Gene gene = getGene(transcript)
         if (gene == null) {
             return;
         }
@@ -285,11 +286,58 @@ class TranscriptService {
     Transcript splitTranscript(Transcript transcript, Exon leftExon, Exon rightExon) {
         List<Exon> exons = getSortedExons(transcript,true)
         Transcript splitTranscript = (Transcript) transcript.getClass().newInstance()
+
+         transcript.featureProperties.each { fp ->
+           // to do: duplicate
+           if(fp instanceof Comment){
+             Comment comment = new Comment( value: fp.value, feature: splitTranscript)
+             splitTranscript.addToFeatureProperties(comment)
+           }
+           else{
+             FeatureProperty featureProperty = new FeatureProperty(
+               type: fp.type,
+               feature: splitTranscript,
+               tag: fp.tag,
+               value: fp.value,
+               rank: fp.rank,
+             )
+             splitTranscript.addToFeatureProperties(featureProperty)
+           }
+         }
+        transcript.featurePublications.each { fp ->
+          // to do: duplicate
+          Publication publication = new Publication()
+          publication.properties = fp.properties
+          splitTranscript.addToFeaturePublications(fp)
+        }
+        transcript.featureDBXrefs.each { fp ->
+          DBXref featureDbxref = new DBXref(
+             feature:splitTranscript,
+            accession: fp.accession,
+            description: fp.description,
+            version: fp.version,
+            db: fp.db ,
+          )
+          splitTranscript.addToFeatureDBXrefs(featureDbxref)
+        }
+        splitTranscript.description = transcript.description
+
+
+
         splitTranscript.uniqueName = nameService.generateUniqueName()
         splitTranscript.name = nameService.generateUniqueName(transcript)
         splitTranscript.save()
 
-        // copying featureLocation of transcript to splitTranscript
+        if(transcript.status){
+          Status newStatus = new Status(
+            value: transcript.status.value,
+            feature: splitTranscript,
+          )
+          splitTranscript.status = newStatus
+        }
+
+
+      // copying featureLocation of transcript to splitTranscript
         transcript.featureLocations.each { featureLocation ->
             FeatureLocation newFeatureLocation = new FeatureLocation(
                     fmin: featureLocation.fmin
@@ -419,7 +467,6 @@ class TranscriptService {
 
         Gene gene1 = getGene(transcript1)
         Gene gene2 = getGene(transcript2)
-        String gene2uniquename = gene2.uniqueName
 
         if (gene1) {
             gene1.save(flush: true)
@@ -439,7 +486,7 @@ class TranscriptService {
 
                     for (Transcript transcript : gene2Transcripts) {
                         // moving all transcripts of gene2 to gene1, except for transcripts2 which needs to be deleted
-                        // only move if it overlapps.
+                        // only move if it overlaps.
                         if (transcript != transcript2) {
                             deleteTranscript(gene2, transcript)
                             featureService.addTranscriptToGene(gene1, transcript)
@@ -455,6 +502,7 @@ class TranscriptService {
 
         // Delete the empty transcript from the gene, if gene not already deleted
         if (!flag) {
+            featureService.mergeIsoformBoundaries(transcript1,transcript2)
             def childFeatures = featureRelationshipService.getChildren(transcript2)
             featureRelationshipService.deleteChildrenForTypes(transcript2)
             Feature.deleteAll(childFeatures)

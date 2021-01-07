@@ -2,16 +2,11 @@ package org.bbop.apollo.gwt.client;
 
 import com.google.gwt.cell.client.NumberCell;
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.event.dom.client.ChangeEvent;
-import com.google.gwt.event.dom.client.ClickEvent;
-import com.google.gwt.event.dom.client.DoubleClickEvent;
-import com.google.gwt.event.dom.client.DoubleClickHandler;
+import com.google.gwt.event.dom.client.*;
 import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.Response;
-import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONParser;
-import com.google.gwt.json.client.JSONValue;
+import com.google.gwt.json.client.*;
 import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
@@ -31,6 +26,7 @@ import org.bbop.apollo.gwt.client.event.OrganismChangeEventHandler;
 import org.bbop.apollo.gwt.client.resources.TableResources;
 import org.bbop.apollo.gwt.client.rest.OrganismRestService;
 import org.bbop.apollo.gwt.client.rest.RestService;
+import org.bbop.apollo.gwt.shared.FeatureStringEnum;
 import org.bbop.apollo.gwt.shared.track.SequenceTypeEnum;
 import org.gwtbootstrap3.client.ui.*;
 import org.gwtbootstrap3.client.ui.Button;
@@ -39,6 +35,7 @@ import org.gwtbootstrap3.client.ui.TextBox;
 import org.gwtbootstrap3.extras.bootbox.client.Bootbox;
 import org.gwtbootstrap3.extras.bootbox.client.callback.ConfirmCallback;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -69,7 +66,7 @@ public class OrganismPanel extends Composite {
     TextBox sequenceFile;
     DataGrid.Resources tablecss = GWT.create(TableResources.TableCss.class);
     @UiField(provided = true)
-    DataGrid<OrganismInfo> dataGrid = new DataGrid<OrganismInfo>(10, tablecss);
+    DataGrid<OrganismInfo> dataGrid = new DataGrid<OrganismInfo>(20, tablecss);
     @UiField
     Button newButton;
     @UiField
@@ -99,6 +96,8 @@ public class OrganismPanel extends Composite {
     @UiField
     Button uploadOrganismButton;
     @UiField
+    Button downloadOrganismButton;
+    @UiField
     FormPanel newOrganismForm;
     @UiField
     TextBox organismUploadName;
@@ -112,14 +111,24 @@ public class OrganismPanel extends Composite {
     TextBox organismUploadSpecies;
     @UiField
     TextBox organismUploadNonDefaultTranslationTable;
+    @UiField
+    static TextBox nameSearchBox;
+    @UiField
+    HTML dbUploadDescription;
+    @UiField
+    FileUpload organismUploadDatabase;
 
-    boolean creatingNewOrganism = false; // a special flag for handling the clearSelection event when filling out new organism info
-    boolean savingNewOrganism = false; // a special flag for handling the clearSelection event when filling out new organism info
+    private boolean creatingNewOrganism = false; // a special flag for handling the clearSelection event when filling out new organism info
+    private boolean savingNewOrganism = false; // a special flag for handling the clearSelection event when filling out new organism info
 
-    final LoadingDialog loadingDialog;
-    final ErrorDialog errorDialog;
-    private ListDataProvider<OrganismInfo> dataProvider = new ListDataProvider<>();
-    private List<OrganismInfo> organismInfoList = dataProvider.getList();
+    final private LoadingDialog loadingDialog;
+    final private ErrorDialog errorDialog;
+
+    static private ListDataProvider<OrganismInfo> dataProvider = new ListDataProvider<>();
+    private static List<OrganismInfo> organismInfoList = new ArrayList<>();
+    private static List<OrganismInfo> filteredOrganismInfoList = dataProvider.getList();
+
+
     private final SingleSelectionModel<OrganismInfo> singleSelectionModel = new SingleSelectionModel<>();
 
     public OrganismPanel() {
@@ -133,6 +142,7 @@ public class OrganismPanel extends Composite {
         newOrganismForm.setAction(RestService.fixUrl("organism/addOrganismWithSequence"));
 
         uploadDescription.setHTML("<small>" + SequenceTypeEnum.generateSuffixDescription() + "</small>");
+        dbUploadDescription.setHTML("2bit blat file");
 
         newOrganismForm.addSubmitHandler(new FormPanel.SubmitHandler() {
             @Override
@@ -199,6 +209,7 @@ public class OrganismPanel extends Composite {
             public void onOrganismChanged(OrganismChangeEvent organismChangeEvent) {
                 organismInfoList.clear();
                 organismInfoList.addAll(MainPanel.getInstance().getOrganismInfoList());
+                filterList();
             }
         });
 
@@ -273,6 +284,26 @@ public class OrganismPanel extends Composite {
 
     }
 
+
+    @UiHandler("nameSearchBox")
+    public void doSearch(KeyUpEvent keyUpEvent) {
+        filterList();
+    }
+
+    static void filterList() {
+        String text = nameSearchBox.getText();
+        filteredOrganismInfoList.clear();
+        if(text.trim().length()==0){
+            filteredOrganismInfoList.addAll(organismInfoList);
+            return ;
+        }
+        for (OrganismInfo organismInfo : organismInfoList) {
+            if (organismInfo.getName().toLowerCase().contains(text.toLowerCase())) {
+                    filteredOrganismInfoList.add(organismInfo);
+            }
+        }
+    }
+
     public void loadOrganismInfo() {
         loadOrganismInfo(singleSelectionModel.getSelectedObject());
     }
@@ -300,8 +331,14 @@ public class OrganismPanel extends Composite {
         species.setText(organismInfo.getSpecies());
         species.setEnabled(isEditable);
 
-        sequenceFile.setText(organismInfo.getDirectory());
-        sequenceFile.setEnabled(isEditable);
+        if (organismInfo.getNumFeatures() == 0) {
+          sequenceFile.setText(organismInfo.getDirectory() );
+          sequenceFile.setEnabled(isEditable);
+        }
+        else{
+          sequenceFile.setText(organismInfo.getDirectory() + " (remove " + organismInfo.getNumFeatures() + " annotations to change)" );
+          sequenceFile.setEnabled(false);
+        }
 
         publicMode.setValue(organismInfo.getPublicMode());
         publicMode.setEnabled(isEditable);
@@ -314,6 +351,7 @@ public class OrganismPanel extends Composite {
         nonDefaultTranslationTable.setText(organismInfo.getNonDefaultTranslationTable());
         nonDefaultTranslationTable.setEnabled(isEditable);
 
+        downloadOrganismButton.setVisible(false);
         deleteButton.setVisible(isEditable);
         deleteButton.setEnabled(isEditable);
     }
@@ -368,6 +406,49 @@ public class OrganismPanel extends Composite {
         addOrganismFromSequencePanel.show();
     }
 
+    @UiHandler("downloadOrganismButton")
+    public void downloadOrganismButton(ClickEvent event) {
+
+        OrganismInfo organismInfo = singleSelectionModel.getSelectedObject();
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("organism",new JSONString(organismInfo.getId()));
+        jsonObject.put("directory",new JSONString(organismInfo.getDirectory()));
+        jsonObject.put("type", new JSONString(FeatureStringEnum.TYPE_JBROWSE.getValue()));
+        jsonObject.put("output", new JSONString("file"));
+        jsonObject.put("format", new JSONString("gzip"));
+//        jsonObject.put("format", new JSONString("tar.gz"));
+        jsonObject.put("exportFullJBrowse", JSONBoolean.getInstance(true));
+        jsonObject.put("exportJBrowseSequence", JSONBoolean.getInstance(false));
+//        String type = exportPanel.getType();
+//        jsonObject.put("type", new JSONString(exportPanel.getType()));
+//        jsonObject.put("exportAllSequences", new JSONString(exportPanel.getExportAll().toString()));
+
+        RequestCallback requestCallback = new RequestCallback() {
+            @Override
+            public void onResponseReceived(Request request, Response response) {
+                JSONObject responseObject = JSONParser.parseStrict(response.getText()).isObject();
+                GWT.log("Responded: "+responseObject.toString());
+                String uuid = responseObject.get("uuid").isString().stringValue();
+                String exportType = responseObject.get("exportType").isString().stringValue();
+//                String sequenceType = responseObject.get("seqType").isString().stringValue();
+//                String exportUrl = Annotator.getRootUrl() + "IOService/download?uuid=" + uuid + "&exportType=" + exportType + "&seqType=" + sequenceType+"&format=gzip";
+//                String exportUrl = Annotator.getRootUrl() + "IOService/download?uuid=" + uuid + "&exportType=" + exportType + "&format=tar.gz";
+                String exportUrl = Annotator.getRootUrl() + "IOService/download?uuid=" + uuid + "&exportType=" + exportType + "&format=gzip";
+
+                Window.Location.assign(exportUrl);
+//                exportPanel.setExportUrl(exportUrl);
+            }
+
+            @Override
+            public void onError(Request request, Throwable exception) {
+                Bootbox.alert("Error: " + exception);
+            }
+        };
+
+
+        RestService.sendRequest(requestCallback, "IOService/write", "data=" + jsonObject.toString());
+    }
+
     @UiHandler("saveNewOrganism")
     public void saveNewOrganism(ClickEvent event) {
         String resultMessage = checkForm();
@@ -393,7 +474,12 @@ public class OrganismPanel extends Composite {
         }
         SequenceTypeEnum sequenceTypeEnum = SequenceTypeEnum.getSequenceTypeForFile(organismUploadSequence.getFilename());
         if (sequenceTypeEnum == null) {
-            return "Bad suffix for filename " + organismUploadSequence.getFilename();
+            String filename = organismUploadSequence.getFilename();
+            String suffix = null ;
+            if (filename != null && filename.contains(".")) {
+               suffix = filename.substring(filename.lastIndexOf("."));
+            }
+            return "Filename extension not supported"+ (suffix!=null ? "'"+suffix+"'": "" ) ;
         }
         return null;
     }
@@ -423,6 +509,8 @@ public class OrganismPanel extends Composite {
         deleteButton.setText("Delete Organism");
         newButton.setEnabled(false);
         uploadOrganismButton.setVisible(false);
+//        downloadOrganismButton.setVisible(singleSelectionModel.getSelectedObject()!=null);
+        downloadOrganismButton.setVisible(false);
         cancelButton.setEnabled(MainPanel.getInstance().isCurrentUserInstructorOrBetter());
         createButton.setEnabled(MainPanel.getInstance().isCurrentUserInstructorOrBetter());
 
@@ -488,6 +576,8 @@ public class OrganismPanel extends Composite {
     public void handleCancelNewOrganism(ClickEvent clickEvent) {
         newButton.setEnabled(MainPanel.getInstance().isCurrentUserAdmin());
         uploadOrganismButton.setVisible(MainPanel.getInstance().isCurrentUserAdmin());
+//        downloadOrganismButton.setVisible(singleSelectionModel.getSelectedObject()!=null);
+        downloadOrganismButton.setVisible(false);
         deleteButton.setVisible(false);
         createButton.setVisible(false);
         cancelButton.setVisible(false);
@@ -570,10 +660,27 @@ public class OrganismPanel extends Composite {
 
     @UiHandler("sequenceFile")
     public void handleOrganismDirectory(ChangeEvent changeEvent) {
+      try {
         if (singleSelectionModel.getSelectedObject() != null) {
-            singleSelectionModel.getSelectedObject().setDirectory(sequenceFile.getText());
-            updateOrganismInfo();
+          Bootbox.confirm("Changing the source directory will remove all existing annotations.  Continue?", new ConfirmCallback() {
+            @Override
+            public void callback(boolean result) {
+              if(result) {
+                singleSelectionModel.getSelectedObject().setDirectory(sequenceFile.getText());
+                updateOrganismInfo();
+              }
+            }
+          });
         }
+      } catch (Exception e) {
+        Bootbox.alert("There was a problem updating the organism: "+e.getMessage());
+        Bootbox.confirm("Reload", new ConfirmCallback() {
+          @Override
+          public void callback(boolean result) {
+            if(result) Window.Location.reload();
+          }
+        });
+      }
     }
 
     private void updateOrganismInfo() {
@@ -596,6 +703,7 @@ public class OrganismPanel extends Composite {
         setTextEnabled(false);
 
         deleteButton.setVisible(false);
+        downloadOrganismButton.setVisible(false);
     }
 
     private void changeButtonSelection() {
@@ -605,12 +713,14 @@ public class OrganismPanel extends Composite {
     // Set the button states/visibility depending on whether there is a selection or not
     private void changeButtonSelection(boolean selection) {
         //Boolean isAdmin = MainPanel.getInstance().isCurrentUserAdmin();
-        Boolean isAdmin = MainPanel.getInstance().isCurrentUserInstructorOrBetter();
+        boolean isAdmin = MainPanel.getInstance().isCurrentUserInstructorOrBetter();
         if (selection) {
             newButton.setEnabled(isAdmin);
             newButton.setVisible(isAdmin);
             deleteButton.setVisible(isAdmin);
             createButton.setVisible(false);
+//            downloadOrganismButton.setVisible(true);
+            downloadOrganismButton.setVisible(false);
             cancelButton.setVisible(false);
             duplicateButton.setVisible(isAdmin);
             publicMode.setVisible(isAdmin);
@@ -619,6 +729,7 @@ public class OrganismPanel extends Composite {
             newButton.setEnabled(isAdmin);
             newButton.setVisible(isAdmin);
             createButton.setVisible(false);
+            downloadOrganismButton.setVisible(false);
             cancelButton.setVisible(false);
             deleteButton.setVisible(false);
             duplicateButton.setVisible(false);

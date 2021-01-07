@@ -9,9 +9,9 @@ The general idea behind your deployment is to create a `apollo-config.groovy` fi
 have sample settings for various database engines.
 
 
-## Production pre-requisites
+## Pre-requisites
 
-You will minimally need to have Java 8 or greater, [Grails](https://grails.org/), [git](https://git-scm.com/),
+The server will minimally need to have Java 8 or greater, [Grails](https://grails.org/), [git](https://git-scm.com/),
 [ant](http://ant.apache.org/), a servlet container e.g. [tomcat7+](http://tomcat.apache.org/), jetty, or resin. An
 external database such as PostgreSQL or MySQL is generally used for production, but instructions for the H2 database is
 also provided.
@@ -19,57 +19,42 @@ also provided.
 **Important note**:  The default memory for Tomcat and Jetty is insufficient to run Apollo (and most other web apps).   
 You should [increase the memory according to these instructions](Troubleshooting.md#tomcat-memory).
 
-Other possible [build settings for JBrowse](http://gmod.org/wiki/JBrowse_Configuration_Guide) (based on an Ubuntu 16 install):
+Other possible [build settings for JBrowse](http://gmod.org/wiki/JBrowse_Configuration_Guide):
+ 
+Ubuntu / Debian
 
-     sudo apt-get update && sudo apt-get install zlib1g-dev libpng-dev libgd2-noxpm-dev build-essential git python-software-properties python
+     sudo apt-get install zlib1g zlib1g-dev libexpat1-dev libpng-dev libgd2-noxpm-dev build-essential git python-software-properties python make
+    
+RedHat / CentOS
+
+     sudo apt-get install zlib zlib-dev expat-dev libpng-dev libgd2-noxpm-dev build-essential git python-software-properties python make
      
-### Install node if not present
-
-Node versions 608 have been tested.  
-
-Option 1 (preferred):
-
-1. Install [nvm](https://github.com/creationix/nvm) 
-2. Install node with ```nvm install node 8```
-
-Option 2:
-
-[stable versions of node.js](https://nodejs.org/en/download/package-manager/) will supply this.  
-
-     curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
-     sudo apt-get install nodejs 
      
-NOTE: you may need to link nodejs to to node if your system installs it as a ```nodejs``` binary instead of a node one.  E.g., 
+It is recommended to use the [default version of JBrowse or better](https://github.com/GMOD/Apollo/blob/develop/grails-app/conf/Config.groovy#L406) (though it does not work with JBrowse 2 yet).
 
-    sudo ln -s /usr/bin/nodejs /usr/bin/node
+There are [additional requirements](Apollo2Build.md) if doing development with Apollo.
 
+### Install node and yarn
 
-### 
+Node versions 6-12 have been tested and work.   [nvm](https://github.com/creationix/nvm) and ``nvm install 8``` is recommended.
+
+    npm install -g yarn
+
+### Install jdk
      
-Build settings for Apollo specifically.  Recent versions of tomcat7 will work, though tomcat8 is preferred.  If it does not install automatically there are a number of ways to [build tomcat on linux](https://www.digitalocean.com/community/tutorials/how-to-install-java-with-apt-get-on-ubuntu-16-04):
+Build settings for Apollo specifically.  Recent versions of tomcat7 will work, though tomcat 8 and 9 are preferred.  If it does not install automatically there are a number of ways to [build tomcat on linux](https://www.digitalocean.com/community/tutorials/how-to-install-java-with-apt-get-on-ubuntu-16-04):
      
     sudo apt-get install ant openjdk-8-jdk 
     export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/  # or set in .bashrc / .project
     
-Install yarn:
+If you need to have multiple versions of java (note [#2222](https://github.com/GMOD/Apollo/issues/2222)), you will need to specify the version for tomcat.  In tomcat8 on Ubuntu you'll need to set the `/etc/default/tomcat8` file JAVA_HOME explicitly:
 
-    npm install -g yarn
+    JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 
-Download Apollo from the [latest release](https://github.com/GMOD/Apollo/releases/latest/) under source-code and unzip.  Test installation by running ```./apollo run-local``` and see that the web-server starts up on http://localhost:8080/apollo/.  To setup for production continue onto configuration below after install . 
+Download Apollo from the [latest release](https://github.com/GMOD/Apollo/releases/latest/) under source-code and unzip.  
+Test installation by running ```./apollo run-local``` and see that the web-server starts up on http://localhost:8080/apollo/.  
+To setup for production continue onto configuration below after install . 
 
-If you get an ```Unsupported major.minor error``` or similar, please confirm that the version of java that tomcat is running ```ps -ef | grep java``` is the same as the one you used to build.  Setting JAVA_HOME to the Java 8 JDK should fix most problems.
-
-
-#### JSON in the URL with newer versions of Tomcat
-
-When JSON is added to the URL string (e.g., `addStores` and `addTracks`) you may get this error with newer patched versions of Tomcat 7.0.73, 8.0.39, 8.5.7:
-
-     java.lang.IllegalArgumentException: Invalid character found in the request target. The valid characters are defined in RFC 7230 and RFC 3986
-
-To fix these, the best solution we've come up with (and there may be many) is to explicitly allow these characters, which you can do starting with Tomcat versions: 7.0.76, 8.0.42, 8.5.12.
-This is done by adding the following line to `$CATALINA_HOME/conf/catalina.properties`:
-
-    tomcat.util.http.parser.HttpParser.requestTargetAllow=|{}
 
 ### Database configuration
 
@@ -77,8 +62,8 @@ Apollo supports several database backends, and you can choose sample configurati
 MySQL by default.
 
 Each has a file called `sample-h2-apollo-config.groovy` or `sample-postgres-apollo-config.groovy` that is designed to be
-renamed to apollo-config.groovy before running `apollo deploy`. Additionally there is a
-`sample-docker-apollo-config.groovy` which allows control of the configuration via environment variables.
+renamed to apollo-config.groovy before running `apollo deploy`.   Additionally, you can also run via [docker](Docker.md).
+
 
 Furthermore, the `apollo-config.groovy` has different groovy environments for test, development, and production modes.
 The environment will be selected automatically selected depending on how it is run, e.g:
@@ -86,7 +71,6 @@ The environment will be selected automatically selected depending on how it is r
 * `apollo deploy` use the production environment (i.e. when you copy the war file to your production
 server `apollo run-local` or `apollo debug` use the development environment (i.e. when you are running it locally)
 * `apollo test` uses the test environment (i.e. only when running unit tests)
-
 
 
 #### Configure for H2:
@@ -101,19 +85,9 @@ server `apollo run-local` or `apollo debug` use the development environment (i.e
 - Copy the sample-postgres-apollo-config.groovy to apollo-config.groovy. 
 
 
-
 #### Configure for MySQL:
 - Create a new MySQL database for production mode (i.e. run ``create database `apollo-production``` in the mysql
   console) and copy the sample-postgres-apollo-config.groovy to apollo-config.groovy.
-
-
-#### Configure for Docker:
-- Set up and export all of the environment variables you wish to configure. At bare minimum you will likely wish to set
-  `WEBAPOLLO_DB_USERNAME`, `WEBAPOLLO_DB_PASSWORD`, `WEBAPOLLO_DB_DRIVER`, `WEBAPOLLO_DB_DIALECT`, and
-`WEBAPOLLO_DB_URI`
-- Create a new database in your chosen database backend and copy the sample-docker-apollo-config.groovy to
-  apollo-config.groovy.
-- [Instructions and a script for launching docker with apollo and PostgreSQL](https://github.com/GMOD/docker-apollo).
 
 
 #### Apollo in Galaxy

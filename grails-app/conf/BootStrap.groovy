@@ -1,6 +1,4 @@
 import org.bbop.apollo.FeatureType
-import org.bbop.apollo.Role
-import org.bbop.apollo.gwt.shared.GlobalPermissionEnum
 import org.bbop.apollo.sequence.SequenceTranslationHandler
 
 
@@ -26,6 +24,10 @@ class BootStrap {
         log.info "Url: ${dataSource.url}"
         log.info "Driver: ${dataSource.driverClassName}"
         log.info "Dialect: ${dataSource.dialect}"
+
+        System.getenv().each {
+            log.debug it.key + "->" + it.value
+        }
 
         domainMarshallerService.registerObjects()
         proxyService.initProxies()

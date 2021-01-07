@@ -145,6 +145,10 @@ public class TrackPanel extends Composite {
     Row locationRow;
     @UiField
     HTML locationView;
+    @UiField
+    HTML topTypeHTML;
+    @UiField
+    com.google.gwt.user.client.ui.TextBox topTypeName;
 
     public static ListDataProvider<TrackInfo> dataProvider = new ListDataProvider<>();
     private static List<TrackInfo> trackInfoList = new ArrayList<>();
@@ -155,6 +159,8 @@ public class TrackPanel extends Composite {
     private static Map<TrackInfo, CheckBoxButton> checkBoxMap = new TreeMap<>();
     private static Map<TrackInfo, TrackBodyPanel> trackBodyMap = new TreeMap<>();
 
+    private final int MAX_TIME = 5000 ;
+    private final int DELAY_TIME = 400;
 
     public TrackPanel() {
         exportStaticMethod();
@@ -164,23 +170,20 @@ public class TrackPanel extends Composite {
         dataGrid.setWidth("100%");
 
 
+
         Scheduler.get().scheduleFixedDelay(new Scheduler.RepeatingCommand() {
             @Override
             public boolean execute() {
                 if (canAdminTracks()) {
-                    addTrackButton.setVisible(true);
-                    configuration.getElement().setPropertyString("placeholder", "Enter configuration data");
-                    trackFileName.getElement().setPropertyString("placeholder", "Enter track name");
-                    categoryName.getElement().setPropertyString("placeholder", "Enter category name");
-                    newTrackForm.setEncoding(FormPanel.ENCODING_MULTIPART);
-                    newTrackForm.setMethod(FormPanel.METHOD_POST);
-                    newTrackForm.setAction(RestService.fixUrl("organism/addTrackToOrganism"));
+                    handleAdminState();
+                    GWT.log("can admin tracks");
+                    return false;
                 } else {
-                    GWT.log("can not admin tracks");
+                    GWT.log("can not admin tracks, retryting");
                 }
-                return false;
+                return true ;
             }
-        }, 400);
+        }, DELAY_TIME);
 
         newTrackForm.addSubmitHandler(new FormPanel.SubmitHandler() {
             @Override
@@ -210,8 +213,18 @@ public class TrackPanel extends Composite {
                 loadTracks(2000);
             }
         });
-
     }
+
+    private void handleAdminState(){
+        addTrackButton.setVisible(true);
+        configuration.getElement().setPropertyString("placeholder", "Enter configuration data");
+        trackFileName.getElement().setPropertyString("placeholder", "Enter track name");
+        categoryName.getElement().setPropertyString("placeholder", "Enter category name");
+        newTrackForm.setEncoding(FormPanel.ENCODING_MULTIPART);
+        newTrackForm.setMethod(FormPanel.METHOD_POST);
+        newTrackForm.setAction(RestService.fixUrl("organism/addTrackToOrganism"));
+    }
+
 
     private static boolean canAdminTracks() {
         return MainPanel.getInstance().isCurrentUserAdmin();
@@ -247,6 +260,7 @@ public class TrackPanel extends Composite {
                 if (trackInfoList.isEmpty()) {
                     return true;
                 }
+                handleAdminState();
                 return false;
             }
         }, delay);
@@ -329,7 +343,10 @@ public class TrackPanel extends Composite {
 
     private void setTrackTypeAndUpdate(TrackTypeEnum trackType) {
         configurationButton.setText(trackType.toString());
-        configuration.setText(TrackConfigurationTemplate.generateForTypeAndKeyAndCategory(trackType, trackFileName.getText(), categoryName.getText()).toString());
+        if(topTypeName.getText().length()==0){
+            topTypeName.setText("mRNA");
+        }
+        configuration.setText(TrackConfigurationTemplate.generateForTypeAndKeyAndCategory(trackType, trackFileName.getText(), categoryName.getText(),topTypeName.getText()).toString());
         showFileOptions(trackType);
         if (trackType.isIndexed()) {
             showIndexOptions(trackType);
@@ -358,14 +375,9 @@ public class TrackPanel extends Composite {
         }
     }
 
-    @UiHandler("trackFileName")
+    @UiHandler({"trackFileName","categoryName","topTypeName"})
     public void updateTrackFileName(KeyUpEvent event) {
-        configuration.setText(TrackConfigurationTemplate.generateForTypeAndKeyAndCategory(getTrackType(), trackFileName.getText(), categoryName.getText()).toString());
-    }
-
-    @UiHandler("categoryName")
-    public void updateCategoryName(KeyUpEvent event) {
-        configuration.setText(TrackConfigurationTemplate.generateForTypeAndKeyAndCategory(getTrackType(), trackFileName.getText(), categoryName.getText()).toString());
+        configuration.setText(TrackConfigurationTemplate.generateForTypeAndKeyAndCategory(getTrackType(), trackFileName.getText(), categoryName.getText(),topTypeName.getText()).toString());
     }
 
     @UiHandler("cancelNewTrack")
@@ -389,6 +401,16 @@ public class TrackPanel extends Composite {
 
         trackNameHTML.setVisible(true);
         trackFileName.setVisible(true);
+
+        if(typeEnum.name().startsWith("GFF")){
+            topTypeHTML.setVisible(true);
+            topTypeName.setVisible(true);
+            topTypeName.setText("mRNA");
+        }
+        else{
+            topTypeHTML.setVisible(false);
+            topTypeName.setVisible(false);
+        }
 
         categoryName.setVisible(true);
         categoryNameHTML.setVisible(true);
@@ -422,6 +444,9 @@ public class TrackPanel extends Composite {
 
         trackNameHTML.setVisible(false);
         trackFileName.setVisible(false);
+
+        topTypeHTML.setVisible(false);
+        topTypeName.setVisible(false);
 
         categoryName.setVisible(false);
         categoryNameHTML.setVisible(false);
@@ -851,32 +876,41 @@ public class TrackPanel extends Composite {
 
     public static void updateTracks(JSONArray array) {
         trackInfoList.clear();
-        for (int i = 0; i < array.size(); i++) {
-            JSONObject object = array.get(i).isObject();
-            TrackInfo trackInfo = new TrackInfo();
-            // track label can never be null, but key can be
-            trackInfo.setName(object.get("key") == null ? object.get("label").isString().stringValue() : object.get("key").isString().stringValue());
+        try {
+            for (int i = 0; i < array.size(); i++) {
+                JSONObject object = array.get(i).isObject();
+                TrackInfo trackInfo = new TrackInfo();
+                // track label can never be null, but key can be
+                trackInfo.setName(object.get("key") == null ? object.get("label").isString().stringValue() : object.get("key").isString().stringValue());
 
-            if (object.get("apollo") != null) trackInfo.setApollo(object.get("apollo").isObject());
+                if (object.get("apollo") != null) trackInfo.setApollo(object.get("apollo").isObject());
 
-            if (object.get("label") != null) trackInfo.setLabel(object.get("label").isString().stringValue());
-            else Bootbox.alert("Track label should not be null, please check your tracklist");
+                if (object.get("label") != null) trackInfo.setLabel(object.get("label").isString().stringValue());
+                else Bootbox.alert("Track label should not be null, please check your trackList.json");
 
-            if (object.get("type") != null) trackInfo.setType(object.get("type").isString().stringValue());
+                if(object.get("type")==null || !object.containsKey("type")) {
+                    Bootbox.alert("Missing type in "+object.toString());
+                }
+                else {
+                    trackInfo.setType(object.get("type").isString().stringValue());
+                }
 
-            if (object.get("urlTemplate") != null)
-                trackInfo.setUrlTemplate(object.get("urlTemplate").isString().stringValue());
+                if (object.get("urlTemplate") != null)
+                    trackInfo.setUrlTemplate(object.get("urlTemplate").isString().stringValue());
 
-            if (object.get("storeClass") != null)
-                trackInfo.setStoreClass(object.get("storeClass").isString().stringValue());
+                if (object.get("storeClass") != null)
+                    trackInfo.setStoreClass(object.get("storeClass").isString().stringValue());
 
-            if (object.get("visible") != null) trackInfo.setVisible(object.get("visible").isBoolean().booleanValue());
-            else trackInfo.setVisible(false);
+                if (object.get("visible") != null) trackInfo.setVisible(object.get("visible").isBoolean().booleanValue());
+                else trackInfo.setVisible(false);
 
-            if (object.get("category") != null) trackInfo.setCategory(object.get("category").isString().stringValue());
+                if (object.get("category") != null) trackInfo.setCategory(object.get("category").isString().stringValue());
 
-            trackInfo.setPayload(object);
-            trackInfoList.add(trackInfo);
+                trackInfo.setPayload(object);
+                trackInfoList.add(trackInfo);
+            }
+        } catch (Exception e) {
+            Bootbox.alert("There was a problem processing your 'trackList.json' file: "+e.getMessage());
         }
         filterList();
     }

@@ -69,11 +69,13 @@ grails.project.dependency.resolution = {
         // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes e.g.
         runtime 'mysql:mysql-connector-java:5.1.29'
         runtime 'org.postgresql:postgresql:9.4.1212'
+//        runtime group: 'mysql', name: 'mysql-connector-java', version: '8.0.17'
+//        runtime group: 'org.postgresql', name: 'postgresql', version: '42.2.6'
         compile 'commons-codec:commons-codec:1.2'
         compile 'commons-collections:commons-collections:3.2.1'
 
         // HTSJDK
-        compile group: 'com.github.samtools', name: 'htsjdk', version: '2.18.2'
+        compile group: 'com.github.samtools', name: 'htsjdk', version: '2.20.3'
 
         // svg generation
         compile group: 'org.apache.xmlgraphics', name: 'batik-svg-dom', version: '1.9'
@@ -83,6 +85,8 @@ grails.project.dependency.resolution = {
         compile 'org.json:json:20140107'
         compile 'org.hibernate:hibernate-tools:3.2.0.ga'
         compile 'commons-beanutils:commons-beanutils:1.8.3'
+        compile group: 'org.codehaus.plexus', name: 'plexus-archiver', version: '4.1.0'
+
         //compile 'asm:asm:3.1'
         //compile  'edu.sdsc:scigraph-core:1.1-SNAPSHOT'
         //compile 'org.biojava:biojava3-core:3.1.0'

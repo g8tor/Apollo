@@ -4,10 +4,7 @@ import com.google.gwt.core.client.GWT;
 import com.google.gwt.http.client.Request;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.Response;
-import com.google.gwt.json.client.JSONArray;
-import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONParser;
-import com.google.gwt.json.client.JSONString;
+import com.google.gwt.json.client.*;
 import org.bbop.apollo.gwt.client.Annotator;
 import org.bbop.apollo.gwt.client.ExportPanel;
 import org.bbop.apollo.gwt.client.SequencePanel;
@@ -50,10 +47,30 @@ public class SequenceRestService {
             jsonObject.put("exportGff3Fasta", new JSONString(""));
             jsonObject.put("chadoExportType", new JSONString(""));
         }
+        else if (type.equals(FeatureStringEnum.TYPE_JBROWSE.getValue())) {
+            GWT.log("type is TYPE_JBROWSE");
+            jsonObject.put("output", new JSONString("file"));
+            jsonObject.put("format", new JSONString("gzip"));
+            jsonObject.put("seqType", new JSONString(""));
+            jsonObject.put("exportGff3Fasta", new JSONString(""));
+            jsonObject.put("chadoExportType", new JSONString(""));
+            jsonObject.put("exportJBrowseSequence", JSONBoolean.getInstance(exportPanel.getExportJBrowseSequence()));
+            jsonObject.put("exportToThisOrganism", JSONBoolean.getInstance(exportPanel.getExportToThisOrganism()));
+        }
+        else if (type.equals(FeatureStringEnum.TYPE_GO.getValue())) {
+          jsonObject.put("chadoExportType", new JSONString(""));
+          jsonObject.put("seqType", new JSONString(exportPanel.getSequenceType()));
+          jsonObject.put("exportGff3Fasta", new JSONString(exportPanel.getExportGff3Fasta().toString()));
+          jsonObject.put("output", new JSONString("file"));
+          jsonObject.put("format", new JSONString("gzip"));
+        }
         else {
             jsonObject.put("chadoExportType", new JSONString(""));
             jsonObject.put("seqType", new JSONString(exportPanel.getSequenceType()));
             jsonObject.put("exportGff3Fasta", new JSONString(exportPanel.getExportGff3Fasta().toString()));
+            if(exportPanel.getRegion()!=null){
+              jsonObject.put("region", new JSONString(exportPanel.getRegion()));
+            }
             jsonObject.put("output", new JSONString("file"));
             jsonObject.put("format", new JSONString("gzip"));
         }

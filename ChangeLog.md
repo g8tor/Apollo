@@ -1,18 +1,83 @@
 
+
+## 2.5.0
+
+Features
+
+- Moved blat / blast search to its own tab [2259](https://github.com/GMOD/Apollo/pull/2259) 
+- Allow creation of annotations from blat features [2225](https://github.com/GMOD/Apollo/pull/2225) 
+- On upload of fasta file execute `faToTwoBit` if present to create searchable blat file [2262](https://github.com/GMOD/Apollo/pull/2262) 
+- Allows history tracking for non-structural edits [2246](https://github.com/GMOD/Apollo/pull/2246)
+- Search pop-up links directly to sequence search [2253](https://github.com/GMOD/Apollo/pull/2209)
+- Organism and Group tab should searchable [2081](https://github.com/GMOD/Apollo/pull/2081) 
+- Allow upload of blat data from web-services [2209](https://github.com/GMOD/Apollo/pull/2209)
+- Added citation and documentation link to help menu [2243](https://github.com/GMOD/Apollo/pull/2243)
+- Allow update of organism via rest API [2227](https://github.com/GMOD/Apollo/pull/2227)
+- Allow inhibition of reloading sequences when uploading sequences to the data directory[2293](https://github.com/GMOD/Apollo/issues/2293)
+- Adds GO annotation to right-click menu [2213](https://github.com/GMOD/Apollo/issues/2213)
+- Adds support for GPI export [2238](https://github.com/GMOD/Apollo/issues/2238)
+
+
+Bug Fixes
+
+- Fixed color by type error [2203](https://github.com/GMOD/Apollo/issues/2203)
+- Find all organisms creates exception when organism does not exist [2275](https://github.com/GMOD/Apollo/issues/2275) 
+- Fixed bug where in the track web-service that hides genomic element that is overlapped by a larger genomic element [2255](https://github.com/GMOD/Apollo/issues/2275)
+- Fixed errors with remote services organism info update [2248](https://github.com/GMOD/Apollo/pull/2248)
+- Numerous GO annotation fixes [2229](https://github.com/GMOD/Apollo/pull/2229),  [2233](https://github.com/GMOD/Apollo/pull/2233), [2171](https://github.com/GMOD/Apollo/issues/2171)
+- Allow deletion of exon with properties on it([2228](https://github.com/GMOD/Apollo/pull/2228)
+- Fixed bug where automated name generation generates unusable names [2134](https://github.com/GMOD/Apollo/issues/2134)
+- Errors in the track panel create a popup-error [2204](https://github.com/GMOD/Apollo/issues/2204)
+- Numerous web-service fixes [2298](https://github.com/GMOD/Apollo/pull/2298) [2290](https://github.com/GMOD/Apollo/pull/2290) [2275](https://github.com/GMOD/Apollo/pull/2275)
+
+Infrastructure Changes
+
+- Fixed Docker build to pull directly from current source instead of GitHub [2300]((https://github.com/GMOD/Apollo/issues/2300))
+- Upgrade to [JBrowse 1.16.6](https://github.com/GMOD/jbrowse/releases/tag/1.16.6-release), which fixes drag error on Chrome mac <https://github.com/GMOD/jbrowse/issues/1397>
+- Allowed for Node 12 [2274](https://github.com/GMOD/Apollo/issues/2274)
+- Reorder of documentation into multiple layers, moving user's guide into local [documentation / read the doc](https://genomearchitect.readthedocs.io/en/latest/).
+- Added web-services tests using arrow's [python-apollo](https://github.com/galaxy-genome-annotation/python-apollo) from the [galaxy-genome-annoation](https://galaxyproject.org/use/gga/) group [2285](https://github.com/GMOD/Apollo/issues/2285).
+ 
+
 ## 2.4.0
 
  Features
 
+- Added GO Annotations. [2172](https://github.com/GMOD/Apollo/pull/2172), [2162](https://github.com/GMOD/Apollo/pull/2162) [1134](https://github.com/GMOD/Apollo/issues/1134)
 - Allow upload of genomic data to create new organisms. [2023](https://github.com/GMOD/Apollo/pull/2023)
-- Allow upload of track data to create new removable tracks. [2024](https://github.com/GMOD/Apollo/pull/2024)
-- Automatically index GFF3 tracks with coverage on upload. [2084](https://github.com/GMOD/Apollo/pull/2084)
+- Allow upload of track data to create new removable tracks. [2024](https://github.com/GMOD/Apollo/pull/2024) [2084](https://github.com/GMOD/Apollo/pull/2084)
+- Allow indication of variant effects [1971](https://github.com/GMOD/Apollo/issues/1971)
+- Added ability to provide suggestable names [1991](https://github.com/GMOD/Apollo/issues/1991)
 - Provide community level private evidence tracks [17](https://github.com/GMOD/Apollo/pull/17)
-- Automatically kill or disable server if a common directory is now defined [2079](https://github.com/GMOD/Apollo/pull/2079)
+- Automatically kill or disable server if a common directory is not defined [2079](https://github.com/GMOD/Apollo/pull/2079)
+- Added support for Shine Dalgarno sequence [2149](https://github.com/GMOD/Apollo/issues/2149) [1955](https://github.com/GMOD/Apollo/issues/1955)
+- Allow for the export of a gene with uncertain internal structure - allow no CDS for an gene [1989](https://github.com/GMOD/Apollo/issues/1989)
+- Added shortcut for sequence and GFF3 popups [2116](https://github.com/GMOD/Apollo/issues/2116)
+- Added the ability to do group add /delete in bulk and group update in bulk [2105](https://github.com/GMOD/Apollo/issues/2105)
+- Added basic support for community level private evidence track [17](https://github.com/GMOD/Apollo/issues/17)
+
+
+Infrastructure Changes
+
+- Integrated Docker into the Apollo repository directly so that `latest` is always the current snapshot and `stable` is always the latest release. [2184](https://github.com/GMOD/Apollo/issues/2184)
+- Upgrade to [JBrowse 1.16.5](https://github.com/GMOD/jbrowse/releases/tag/1.16.5-release)
+- Added script to delete features by name and unique name [2138](https://github.com/GMOD/Apollo/issues/2138)
  
  Bug Fixes
  
 - Fix issue with rendering neat features [2063](https://github.com/GMOD/Apollo/pull/2063) 
 - Fix issue with creating annotations for reads with indels in them [2085](https://github.com/GMOD/Apollo/pull/2085) 
+- Fixes error when changing annotation type when status is set [2167](https://github.com/GMOD/Apollo/issues/2167)
+- Fixes for variant search in annotator panel [2147](https://github.com/GMOD/Apollo/issues/2147)
+- Fixed bug where `txtz` is not supported when adding a gnome feature [2136](https://github.com/GMOD/Apollo/issues/2136)
+- Fixed bug where sequence panel is VERY narrow [2118](https://github.com/GMOD/Apollo/issues/2118)
+- Fixed bug where setting the 5' and 3' based on reads does not work [2110](https://github.com/GMOD/Apollo/issues/2110)
+- Numerous UI issue fixes [2109](https://github.com/GMOD/Apollo/issues/2109)[2113](https://github.com/GMOD/Apollo/issues/2113)
+- Fixed rendering of certain exons [2063](https://github.com/GMOD/Apollo/issues/2063)
+- Fixed bug where indels in long RNAseq reads interpreted as introns when used to make annotations [2085](https://github.com/GMOD/Apollo/issues/2085)
+- Fixed bug where unable to drag features when the new inferHTMLSubfeatures is fals [2099](https://github.com/GMOD/Apollo/issues/2099)
+- Unable to create variants in some cases [2103](https://github.com/GMOD/Apollo/issues/2103)
+
  
 
 ## 2.3.1
