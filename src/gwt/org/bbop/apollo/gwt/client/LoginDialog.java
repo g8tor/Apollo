@@ -54,7 +54,7 @@ public class LoginDialog extends DialogBox {
 
     public LoginDialog() {
         getElement().setId("loginDialogId");
-	getElement().getStyle().setWidth(500, Style.Unit.PX);
+        getElement().getStyle().setWidth(500, Style.Unit.PX);
         setText("Login");
         setAnimationEnabled(true);
         // Enable glass background.
@@ -76,7 +76,7 @@ public class LoginDialog extends DialogBox {
         errorText.setText(errorMessage);
         errorHtml.setVisible(true);
     }
- 
+
     public void clearErrors(){
         errorText.setText("");
         errorHtml.setVisible(false);

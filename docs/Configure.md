@@ -76,6 +76,43 @@ grails {
 }
 ```
 
+### Suppress calculation of non-canonical splice sites
+
+By default we calculate non-canonical splice sites.  For some organisms this is undesirable.
+
+    apollo.calculate_non_canonical_splice_sites = false 
+
+### Count annotations
+
+By default annotations are counted, but in some cases this can be come prohibitive for performance if a lot of annotations. 
+This can be shut off by setting this to false.  This can over-ridden as below in the `apollo-config.groovy` file:
+
+```
+grails {
+  apollo.count_annotations = false
+  apollo {
+    count_annotations = false
+  }
+}
+```
+
+### Suppress add merged comments
+
+By default, when you merge two isoforms, it will automatically create a comment indicating the name and unique ID from the 
+consumed isoform that was used as a comment.
+
+
+```
+grails {
+  apollo.add_merged_comment = false
+  apollo {
+    add_merged_comment = false
+  }
+}
+```
+
+
+
 ### JBrowse Plugins and Configuration
 
 You can configure the installed Apollo JBrowse by modifying the `jbrowse` section of your ```apollo-config.groovy``` that overrides the JBrowse [configuration file](https://github.com/GMOD/Apollo/blob/develop/grails-app/conf/Config.groovy).
@@ -85,7 +122,7 @@ There are two sections, ```plugins``` and ```git```, which specifies the JBrowse
 ```
  git {
         url = "https://github.com/gmod/jbrowse"
-        branch = "1.16.6-release"
+        branch = "1.16.9-release"
 ```
    
 If a git block a ```tag``` or ```branch``` can be specified.  
@@ -298,6 +335,19 @@ the following "higher level" types (from the Sequence Ontology):
 * sequence:miRNA
 * sequence:repeat_region
 * sequence:transposable_element
+
+### Modify CORS
+
+We are using the [grails-cors plugin](https://github.com/davidtinker/grails-cors).   To configure it specifically or turn it off override the options:
+
+```
+cors.url.pattern = '*'
+cors.enable.logging = true
+cors.enabled = true
+cors.headers = ['Access-Control-Allow-Origin': '*']
+```
+
+
 
 ### Set the default biotype for dragging up evidence
 
@@ -582,6 +632,35 @@ You should use ```tracklist=1``` to force showing the native tracklist (or use t
 
 Use ```openAnnotatorPanel=0``` to close the Annotator Panel explicitly on startup. 
 
+### Linking to annotations
+
+You can find a link to your current location by clicking the "chain link" icon in the upper, left-hand corner of the Annotator Panel.  
+
+It will provide a popup that gives you a public URL to view while not logged in and a one to use while logged in. 
+
+####Public URL
+
+<apollo server url>/<organism>/jbrowse/index.html?loc=<location>&tracks=<tracks>
+
+- `location` = <sequence name>:<fmin>..<fmax>
+- `organism` is the organism id or common name if unique.
+- `tracks` are url-encoded tracks separated by a comma
+
+Example:  
+http://demo.genomearchitect.org/Apollo2/3836/jbrowse/index.html?loc=Group1.31:287765..336436&tracks=Official%20Gene%20Set%20v3.2,GeneID
+
+####Logged in URL
+
+<apollo server url>/<organism>/annotator/loadLink?loc=<location>&organism=<organism>&tracks=<tracks>
+
+- `location` = <sequence name>:<fmin>..<fmax>  it can also be the annotated feature `name` if an organims is provided or the `uniqueName` (see the ID in the annotation detail window), which is typically a UUID and does not require an organism.
+- `organism` is the organism id or common name if unique.
+- `tracks` are url-encoded tracks separated by a comma
+
+Examples:
+- http://demo.genomearchitect.org/Apollo2/annotator/loadLink?loc=Group1.31:287765..336436&organism=3836&tracks=Official%20Gene%20Set%20v3.2,GeneID
+- http://demo.genomearchitect.org/Apollo2/annotator/loadLink?loc=GB51936-RA&organism=3836&tracks=Official%20Gene%20Set%20v3.2,GeneID
+- http://demo.genomearchitect.org/Apollo2/annotator/loadLink?uuid=355617c7-f8c1-4105-bb11-755cee1855df&tracks=Official%20Gene%20Set%20v3.2,GeneID
 
 ### Setting default track list behavior
 

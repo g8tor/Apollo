@@ -22,9 +22,6 @@ class PermissionService {
 
     def preferenceService
     def configWrapperService
-    def grailsApplication
-
-
     def remoteUserAuthenticatorService
     def usernamePasswordAuthenticatorService
 
@@ -361,6 +358,9 @@ class PermissionService {
      */
     Sequence checkPermissions(JSONObject inputObject, PermissionEnum requiredPermissionEnum) {
         Organism organism
+
+        // NOTE: if coming through web-socket, we will not have a session
+//        validateSessionForJsonObject(inputObject)
         String sequenceName = getSequenceNameFromInput(inputObject)
 
         User user = getCurrentUser(inputObject)
@@ -483,7 +483,6 @@ class PermissionService {
             try {
                 Subject subject = SecurityUtils.getSubject()
                 subject.getSession(true)
-//                session = subject.getSession(true)
 
                 subject.login(authToken)
                 if (!subject.authenticated) {
@@ -577,18 +576,25 @@ class PermissionService {
             return false
         }
         */
-        String clientToken = jsonObject.getString(FeatureStringEnum.CLIENT_TOKEN.value)
-        // use validateSessionForJsonObject to get the username of the current user into jsonObject, which is needed for checkPermissions
-        jsonObject = validateSessionForJsonObject(jsonObject)
-        Organism organism = getOrganismFromInput(jsonObject)
+        try {
+            String clientToken = jsonObject.getString(FeatureStringEnum.CLIENT_TOKEN.value)
+            // use validateSessionForJsonObject to get the username of the current user into jsonObject, which is needed for checkPermissions
+            jsonObject = validateSessionForJsonObject(jsonObject)
+            Organism organism = getOrganismFromInput(jsonObject)
 
-        organism = organism ?: preferenceService.getCurrentOrganismPreferenceInDB(clientToken)?.organism
-        // don't set the preferences if it is coming off a script
-        if (clientToken != FeatureStringEnum.IGNORE.value) {
-            preferenceService.setCurrentOrganism(getCurrentUser(), organism, clientToken)
+            if(clientToken!=FeatureStringEnum.IGNORE.value){
+                organism = organism ?: preferenceService.getCurrentOrganismPreferenceInDB(clientToken)?.organism
+            }
+            // don't set the preferences if it is coming off a script
+            if (clientToken != FeatureStringEnum.IGNORE.value) {
+                preferenceService.setCurrentOrganism(getCurrentUser(), organism, clientToken)
+            }
+
+            return checkPermissions(jsonObject, organism, permissionEnum)
+        } catch (e) {
+            log.warn(e)
+            return false
         }
-
-        return checkPermissions(jsonObject, organism, permissionEnum)
 
     }
 
@@ -645,7 +651,6 @@ class PermissionService {
 
         for (auth in authentications) {
             if (auth.active) {
-                log.info "Authenticating with ${auth.className}"
                 def authenticationService
                 if ("remoteUserAuthenticatorService" == auth.className) {
                     authenticationService = remoteUserAuthenticatorService
@@ -782,4 +787,7 @@ class PermissionService {
     }
 
 
+    Boolean checkLoginGlobalAndLocalPermissions(JSONObject jsonObject, GlobalPermissionEnum globalPermissionEnum, PermissionEnum permissionEnum2) {
+        return hasGlobalPermissions(jsonObject,globalPermissionEnum) && hasPermissions(jsonObject,permissionEnum2)
+    }
 }
