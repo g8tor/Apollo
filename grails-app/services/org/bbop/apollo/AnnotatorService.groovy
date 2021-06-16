@@ -1,6 +1,5 @@
 package org.bbop.apollo
 
-
 import grails.transaction.Transactional
 import org.bbop.apollo.gwt.shared.FeatureStringEnum
 import org.bbop.apollo.gwt.shared.PermissionEnum
