@@ -974,33 +974,23 @@ function( declare,
                     track.changed();
                 },
 
-        }
-        var buttonDiv = dojo.create("div", { className: "sequence_alteration_button_div" }, content);
-        var addButton = dojo.create("button", { innerHTML: "Add", className: "sequence_alteration_button" }, buttonDiv);
-
-        var addSequenceAlteration = function() {
-            var ok = true;
-            var inputField;
-            var commentField = comField;
-            var inputField = ((type == "deletion") ? deleteField : plusField);
-            // if (type == "deletion") { inputField = deleteField; }
-            // else  { inputField = plusField; }
-            var input = inputField.value.toUpperCase();
-            var commentFieldValue = commentField.value;
-            if (input.length == 0) {
-                alert("Input cannot be empty for " + type);
-                ok = false;
-            }
-	    if (commentFieldValue.length == 0) {
-		alert("Please provide a justification for the sequence modification (" + type + ") in the 'Comment' field.");
-                ok = false;
-	    }
-            if (ok) {
-                var input = inputField.value.toUpperCase();
-                if (type == "deletion") {
-                    if (input.match(/\D/)) {
-                        alert("The length must be a number");
-                        ok = false;
+                /**
+                 * sequence alteration annotation DELETE command received by a ChangeNotificationListener,
+                 *      so telling SequenceTrack to remove from it's SeqFeatureStore
+                 */
+                annotationsDeletedNotification: function (annots) {
+                    if (this.verbose_server_notification) {
+                        console.log("SequenceTrack.removeSequenceAlterations() called");
+                    }
+                    var track = this;
+                    // remove from SeqFeatureStore
+                    for (var i = 0; i < annots.length; ++i) {
+                        var id_to_delete = annots[i].uniquename;
+                        this.store.deleteFeatureById(id_to_delete);
+                    }
+                    track.featureCount = track.storedFeatureCount();
+                    if (this.ALWAYS_SHOW || (this.SHOW_IF_FEATURES && this.featureCount > 0)) {
+                        this.show();
                     }
                     else {
                         this.hide();
