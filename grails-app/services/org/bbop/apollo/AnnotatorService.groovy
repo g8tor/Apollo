@@ -111,7 +111,8 @@ class AnnotatorService {
     catch (
     PermissionException e
     ) {
-        def error = [error: "Error: " + e]
+        def error = [erro
+r: "Error: " + e]
         log.error(error.error)
         return error
     }

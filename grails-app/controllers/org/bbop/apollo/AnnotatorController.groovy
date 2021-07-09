@@ -52,6 +52,7 @@ class AnnotatorController {
                                          "controller",
                                          "format"]
 
+
     /**
      * This is a public method, but is really used only internally.
      *
