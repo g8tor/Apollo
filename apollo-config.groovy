@@ -100,8 +100,12 @@ jbrowse {
    git {
 //       url= "https://github.com/NAL-i5K/jbrowse"
        url= "https://github.com/GMOD/jbrowse"
+<<<<<<< HEAD
 //       tag = "1.16.3-release"
        tag = "1.16.10-release"
+=======
+       tag = "1.16.11-release"
+>>>>>>> origin/2.6.5
 //        branch = "master"
 //	  tag = "1.15.4-release"
 //	  tag = "e9a005cf86a40ad4b2a4aaebcbf914a866ff7f3b"
@@ -139,19 +143,19 @@ jbrowse {
     //        alwaysPull = "true"
     //    }
        NAL_CSS {
-       	   git = "https://github.com/NAL-i5K/NAL_CSS"
-//       	   branch = "master"
-       	   branch = "supports_1.16.5-release"
-           alwaysPull = true
-     	   alwaysRecheck = true
+          git = "https://github.com/NAL-i5K/NAL_CSS"
+//        branch = "master"
+          branch = "supports_1.16.5-release"
+          alwaysPull = true
+          alwaysRecheck = true
        }
-       ColorByType {
-           git = "https://github.com/NAL-i5K/ColorByType"
-           branch = "master"
-//           branch = "issue10_cds"
-           alwaysPull = true
-           alwaysRecheck = true
-       }
+//       ColorByType {
+//           git = "https://github.com/NAL-i5K/ColorByType"
+//           branch = "master"
+////           branch = "issue10_cds"
+//           alwaysPull = true
+//           alwaysRecheck = true
+//       }
 
 //        Header {
 //           git = 'https://github.com/NAL-i5K/workspace_header_footer'

@@ -54,7 +54,7 @@ public class LoginDialog extends DialogBox {
 
     public LoginDialog() {
         getElement().setId("loginDialogId");
-        getElement().getStyle().setWidth(500, Style.Unit.PX);
+	getElement().getStyle().setWidth(500, Style.Unit.PX);
         setText("Login");
         setAnimationEnabled(true);
         // Enable glass background.

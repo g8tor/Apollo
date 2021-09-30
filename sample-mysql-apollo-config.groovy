@@ -86,7 +86,7 @@ environments {
 //    }
 //    extraTabs = [
 //            ['title': 'extra1', 'url': 'http://localhost:8080/apollo/annotator/report/'],
-//            ['title': 'extra2', 'content': '<b>Apollo</b> documentation <a href="http://genomearchitect.org" target="_blank">linked here</a>']
+//            ['title': 'extra2', 'content': '<b>Apollo</b> documentation <a href="https://genomearchitect.readthedocs.io/" target="_blank">linked here</a>']
 //            ['title': 'GGA', 'url': 'https://gitter.im/galaxy-genome-annotation/Lobby/~embed']
 //            ['title': 'JBrowse', 'url': 'https://gitter.im/GMOD/jbrowse/~embed']
 //    ]
@@ -108,7 +108,7 @@ environments {
 //jbrowse {
 //    git {
 //        url= "https://github.com/GMOD/jbrowse"
-//         tag = "1.16.9-release"
+//         tag = "1.16.11-release"
 ////        branch = "dev"
 ////        hash = "09b71099bf73c50d37a0e911baf06b4975e3f6ca"
 //        alwaysPull = true

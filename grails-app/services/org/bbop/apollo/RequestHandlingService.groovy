@@ -670,6 +670,10 @@ class RequestHandlingService {
         }
         log.debug "getFeatures for organism -> ${sequence.organism.commonName} and ${sequence.name}"
 
+        Boolean topLevel = false
+        if (inputObject.has('topLevel')) {
+            topLevel = new Boolean(inputObject.topLevel)
+        }
         def features = Feature.createCriteria().listDistinct {
             featureLocations {
                 eq('sequence', sequence)
@@ -696,7 +700,7 @@ class RequestHandlingService {
             fetchMode 'parentFeatureRelationships.childFeature.featureProperties', FetchMode.JOIN
             fetchMode 'parentFeatureRelationships.childFeature.featureDBXrefs', FetchMode.JOIN
             fetchMode 'parentFeatureRelationships.childFeature.owners', FetchMode.JOIN
-            'in'('class', viewableAnnotationTranscriptList + viewableAnnotationFeatureList + viewableSequenceAlterationList)
+            'in'('class', (topLevel ? viewableAnnotationTranscriptParentList : viewableAnnotationTranscriptList) + viewableAnnotationFeatureList + viewableSequenceAlterationList)
         }
 
 
@@ -1123,13 +1127,18 @@ class RequestHandlingService {
 
     @Timed
     JSONObject setLongestOrf(JSONObject inputObject) {
+
+        boolean allowPartials = true
+        if(inputObject.containsKey("allow_partials")){
+            allowPartials = inputObject.getBoolean("allow_partials")
+        }
         JSONArray features = inputObject.getJSONArray(FeatureStringEnum.FEATURES.value)
         JSONObject transcriptJSONObject = features.getJSONObject(0);
 
         Transcript transcript = Transcript.findByUniqueName(transcriptJSONObject.getString(FeatureStringEnum.UNIQUENAME.value))
         Sequence sequence = permissionService.checkPermissions(inputObject, PermissionEnum.WRITE)
 
-        featureService.setLongestORF(transcript, false)
+        featureService.setLongestORF(transcript, false,allowPartials)
 
         featureService.addOwnersByString(inputObject.username, transcript)
         transcript.save(flush: true, insert: false)
@@ -1974,9 +1983,7 @@ class RequestHandlingService {
             JSONObject jsonExon = features.getJSONObject(i)
             Exon exon = Exon.findByUniqueName(jsonExon.getString(FeatureStringEnum.UNIQUENAME.value));
             checkOwnersDelete(exon, inputObject)
-
             exonService.deleteExon(transcript, exon);
-            featureService.addOwnersByString(inputObject.username, exon)
         }
         def transcriptsToUpdate = featureService.handleDynamicIsoformOverlap(transcript)
         if (transcriptsToUpdate.size() > 0) {
@@ -2178,9 +2185,13 @@ class RequestHandlingService {
                   provenanceService.deleteAnnotationFromFeature(transcript)
                   geneProductService.deleteAnnotationFromFeature(transcript)
 
-                  goAnnotationService.removeGoAnnotationsFromFeature(transcript)
-                  provenanceService.removeProvenancesFromFeature(transcript)
-                  geneProductService.removeGeneProductsFromFeature(transcript)
+                  transcript?.goAnnotations?.clear()
+                  transcript?.geneProducts?.clear()
+                  transcript?.provenances?.clear()
+
+//                  goAnnotationService.removeGoAnnotationsFromFeature(transcript)
+//                  provenanceService.removeProvenancesFromFeature(transcript)
+//                  geneProductService.removeGeneProductsFromFeature(transcript)
 
                   featureRelationshipService.removeFeatureRelationship(gene, transcript)
                   featureRelationshipService.deleteFeatureAndChildren(transcript)
