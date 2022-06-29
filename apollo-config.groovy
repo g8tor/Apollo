@@ -82,7 +82,7 @@ apollo {
 
   splice_donor_sites = [ "GT" ]
   splice_acceptor_sites = [ "AG"]
-  gff3.source= "." 
+  gff3.source= "Apollo" 
   bootstrap = false
 
   info_editor = {
@@ -137,12 +137,12 @@ jbrowse {
     //        branch = 'master'
     //        alwaysPull = "true"
     //    }
-       NAL_CSS {
-       	   git = "https://github.com/NAL-i5K/NAL_CSS"
-       	   branch = "master"
-           alwaysPull = true
-     	   alwaysRecheck = true
-       }
+//       NAL_CSS {
+//       	   git = "https://github.com/NAL-i5K/NAL_CSS"
+//       	   branch = "master"
+//           alwaysPull = true
+//     	   alwaysRecheck = true
+//       }
        ColorByType {
            git = "https://github.com/NAL-i5K/ColorByType"
 //           branch = "master"
