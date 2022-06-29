@@ -63,6 +63,7 @@ apollo {
   is_partial_translation_allowed = false // unused so far
   get_translation_code = 1
   only_owners_delete = false
+  google_analytics = ["UA-49907870-1","UA-62921593-1", "UA-27627304-1"]
   sequence_search_tools = [
     blat_nuc: [
       search_exe: "/usr/local/bin/blat",
@@ -99,12 +100,11 @@ jbrowse {
    git {
 //       url= "https://github.com/NAL-i5K/jbrowse"
        url= "https://github.com/GMOD/jbrowse"
-//       tag = "1.16.3-release"
-       tag = "1.16.5-release"
+       tag = "1.16.11-release"
 //        branch = "master"
 //	  tag = "1.15.4-release"
 //	  tag = "e9a005cf86a40ad4b2a4aaebcbf914a866ff7f3b"
-       alwaysPull = true
+//       alwaysPull = true
        alwaysRecheck = true
 
 	// Warning: We are still testing the performance of NeatFeatures plugins in combination with Apollo.
@@ -137,6 +137,7 @@ jbrowse {
     //        branch = 'master'
     //        alwaysPull = "true"
     //    }
+<<<<<<< HEAD
 //       NAL_CSS {
 //       	   git = "https://github.com/NAL-i5K/NAL_CSS"
 //       	   branch = "master"
@@ -145,11 +146,22 @@ jbrowse {
 //       }
        ColorByType {
            git = "https://github.com/NAL-i5K/ColorByType"
-//           branch = "master"
-           branch = "issue10_cds"
-           alwaysPull = true
-           alwaysRecheck = true
+=======
+       NAL_CSS {
+          git = "https://github.com/NAL-i5K/NAL_CSS"
+//        branch = "master"
+          branch = "supports_1.16.5-release"
+          alwaysPull = true
+          alwaysRecheck = true
        }
+//       ColorByType {
+//           git = "https://github.com/NAL-i5K/ColorByType"
+>>>>>>> c59cf7cbfcffc11b6f863a368716ee8c6be18e0c
+//           branch = "master"
+////           branch = "issue10_cds"
+//           alwaysPull = true
+//           alwaysRecheck = true
+//       }
 
 //        Header {
 //           git = 'https://github.com/NAL-i5K/workspace_header_footer'

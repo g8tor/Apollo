@@ -4,7 +4,7 @@
     <meta name="layout" content="login"/>
     <title>Login</title>
 </head>
-
+<body>
 <div>
         <div class="content" style="margin: 30px; float:left; font-size:12px">
           <br><p></p>
@@ -46,3 +46,4 @@
     </g:form>
 </body>
 </html>
+

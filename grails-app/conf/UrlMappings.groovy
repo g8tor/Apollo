@@ -16,13 +16,14 @@ class UrlMappings {
             }
         }
 
+     //  "/annotator/export/"(controller: "annotator", action:"export")
         "/"(redirect: '/annotator/index')
         "500"(view: '/error')
         "/menu"(view: '/menu')
-        "/version.jsp"(controller: 'annotator', view: "version")
+        "/system"(controller: "annotator", action: "system")
         "/${clientToken}/version.jsp"(controller: 'annotator', view: "version")
-        "/about.jsp"(controller: 'annotator', view: "about")
-        "/${clientToken}/about.jsp"(controller: 'annotator', view: "about")
+        "/about"(controller: 'annotator', view: "about")
+        "/${clientToken}/about"(controller: 'annotator', view: "about")
 
         "/track/nclist/${organismString}/${trackName}/${sequence}:${fmin}..${fmax}.json"(controller: "track", action: "nclist")
         "/track/nclist/${organismString}/${trackName}/?loc=${sequence}:${fmin}..${fmax}"(controller: "track", action: "nclist")
@@ -40,7 +41,8 @@ class UrlMappings {
 
         "/sequence/${organismString}/?loc=${sequenceName}:${fmin}..${fmax}"(controller: "sequence", action: "sequenceByLocation",[params:params])
         "/sequence/${organismString}/${sequenceName}:${fmin}..${fmax}"(controller: "sequence", action: "sequenceByLocation",[params:params])
-        "/sequence/${organismString}/${sequenceName}/${featureName}.${type}"(controller: "sequence", action: "sequenceByName",[params:params])
+        // mapping not found
+//        "/sequence/sequenceByName/${organismString}/${sequenceName}/${featureName}.${type}"(controller: "sequence", action: "sequenceByName",[params:params])
         "/sequence/cache/clear/${organismName}/${sequenceName}"(controller: "sequence", action: "clearSequenceCache")
         "/sequence/cache/clear/${organismName}"(controller: "sequence", action: "clearOrganismCache")
 

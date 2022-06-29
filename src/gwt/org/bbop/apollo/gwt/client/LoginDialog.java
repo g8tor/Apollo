@@ -76,7 +76,7 @@ public class LoginDialog extends DialogBox {
         errorText.setText(errorMessage);
         errorHtml.setVisible(true);
     }
- 
+
     public void clearErrors(){
         errorText.setText("");
         errorHtml.setVisible(false);
