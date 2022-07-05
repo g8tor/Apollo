@@ -137,16 +137,6 @@ jbrowse {
     //        branch = 'master'
     //        alwaysPull = "true"
     //    }
-<<<<<<< HEAD
-//       NAL_CSS {
-//       	   git = "https://github.com/NAL-i5K/NAL_CSS"
-//       	   branch = "master"
-//           alwaysPull = true
-//     	   alwaysRecheck = true
-//       }
-       ColorByType {
-           git = "https://github.com/NAL-i5K/ColorByType"
-=======
        NAL_CSS {
           git = "https://github.com/NAL-i5K/NAL_CSS"
 //        branch = "master"
@@ -156,7 +146,6 @@ jbrowse {
        }
 //       ColorByType {
 //           git = "https://github.com/NAL-i5K/ColorByType"
->>>>>>> c59cf7cbfcffc11b6f863a368716ee8c6be18e0c
 //           branch = "master"
 ////           branch = "issue10_cds"
 //           alwaysPull = true
