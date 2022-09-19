@@ -12,8 +12,8 @@ environments {
             dbCreate = "update" // one of 'create', 'create-drop', 'update', 'validate', ''
             username = System.getenv("WEBAPOLLO_DB_USERNAME") ?: "apollo"
             password = System.getenv("WEBAPOLLO_DB_PASSWORD") ?: "apollo"
-            driverClassName = "org.postgresql.Driver"
-            dialect = org.hibernate.dialect.PostgresPlusDialect
+            driverClassName = System.getenv("WEBAPOLLO_DB_DRIVER") ?:"org.postgresql.Driver"
+            dialect = System.getenv("WEBAPOLLO_DB_DIALECT") ?: "org.hibernate.dialect.PostgresPlusDialect"
             url = System.getenv("WEBAPOLLO_DB_URI") ?: "jdbc:postgresql://127.0.0.1/apollo"
         }
    }
@@ -22,8 +22,8 @@ environments {
             dbCreate = "update" // one of 'create', 'create-drop', 'update', 'validate', ''
             username = System.getenv("WEBAPOLLO_DB_USERNAME") ?: "apollo"
             password = System.getenv("WEBAPOLLO_DB_PASSWORD") ?: "apollo"
-            driverClassName = "org.postgresql.Driver"
-            dialect = org.hibernate.dialect.PostgresPlusDialect
+            driverClassName = System.getenv("WEBAPOLLO_DB_DRIVER") ?:"org.postgresql.Driver"
+            dialect = System.getenv("WEBAPOLLO_DB_DIALECT") ?: "org.hibernate.dialect.PostgresPlusDialect"
             url = System.getenv("WEBAPOLLO_DB_URI") ?: "jdbc:postgresql://127.0.0.1/apollo"
 
             properties {
@@ -57,8 +57,8 @@ apollo {
     admin{
         username = System.getenv("APOLLO_ADMIN_EMAIL")?:"apollo@localhost.com"
         password = System.getenv("APOLLO_ADMIN_PASSWORD")?:"apollo"
-        firstName = "Apollo"
-        lastName = "Admin User"
+        firstName = System.getenv("APOLLO_ADMIN_FIRST_NAME")?: "Apollo"
+        lastName = System.getenv("APOLLO_ADMIN_LAST_NAME")?: "User"
     }
   default_minimum_intron_size = 1
   history_size = 0
